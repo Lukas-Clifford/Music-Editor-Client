@@ -74,11 +74,62 @@ public class FfmpegInstaller {
 
     }
 
-    public static Path getFfprobePath() {
-        return ffprobePath;
+    public static Path getFfprobePath(){
+        // platform and home properties to compare later
+        String platform = System.getProperty("os.name");
+        String home = System.getProperty("user.home");
+
+        String platformFolderName;
+        Path userDataDir;
+
+        // checks for Windows, Mac and Linux and establishes the data folder
+        if (platform.contains("win")) {
+            String appData = System.getenv("APPDATA");
+            userDataDir = Paths.get(appData, APP_DIR_NAME);
+            platformFolderName = "windows";
+        } else if (platform.contains("mac") || platform.contains("darwin")) {
+            userDataDir = Paths.get(home, "Library", "Application Support", APP_DIR_NAME);
+            platformFolderName = "mac";
+        } else {
+            userDataDir = Paths.get(home, ".local", "share", APP_DIR_NAME);
+            platformFolderName = "linux";
+        }
+
+        // In windows, files are executables
+        String ffprobeFileName = platform.contains("win") ? "ffprobe.exe":"ffprobe";
+        String ffmpegFileName = platform.contains("win") ? "ffmpeg.exe":"ffmpeg";
+
+        // Final path where files are going to be copied
+        return userDataDir.resolve(ffprobeFileName);
     }
 
     public static Path getFfmpegPath() {
-        return ffmpegPath;
+        // platform and home properties to compare later
+        String platform = System.getProperty("os.name");
+        String home = System.getProperty("user.home");
+
+        String platformFolderName;
+        Path userDataDir;
+
+        // checks for Windows, Mac and Linux and establishes the data folder
+        if (platform.contains("win")) {
+            String appData = System.getenv("APPDATA");
+            userDataDir = Paths.get(appData, APP_DIR_NAME);
+            platformFolderName = "windows";
+        } else if (platform.contains("mac") || platform.contains("darwin")) {
+            userDataDir = Paths.get(home, "Library", "Application Support", APP_DIR_NAME);
+            platformFolderName = "mac";
+        } else {
+            userDataDir = Paths.get(home, ".local", "share", APP_DIR_NAME);
+            platformFolderName = "linux";
+        }
+
+        // In windows, files are executables
+        String ffprobeFileName = platform.contains("win") ? "ffprobe.exe":"ffprobe";
+        String ffmpegFileName = platform.contains("win") ? "ffmpeg.exe":"ffmpeg";
+
+        // Final path where files are going to be copied
+        return userDataDir.resolve(ffmpegFileName);
+
     }
 }

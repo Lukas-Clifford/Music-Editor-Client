@@ -10,9 +10,12 @@ public class Track implements Comparable<Track> {
 
     public Track(List<Clip> clips) {
         this.clips = clips.stream().sorted().toList();
-        this.length = clips.getLast().getEndPosition();
+        this.length = (clips.isEmpty()) ? 0:clips.getLast().getEndPosition();
     }
 
+    public Track(){
+        clips = new ArrayList<>();
+    }
 
 
     public List<Clip> getClips() {
@@ -31,9 +34,22 @@ public class Track implements Comparable<Track> {
         this.length = length;
     }
 
+    public void addClip(Clip clip) {
+        this.clips.add(clip);
+        this.length = clips.getLast().getEndPosition();
+    }
+
+    public void removeClip(Clip clip){
+        this.clips.remove(clip);
+    }
 
     @Override
     public int compareTo(Track o) {
         return Integer.compare(this.length, o.length);
+    }
+
+    @Override
+    public String toString() {
+        return clips.toString();
     }
 }

@@ -2,6 +2,7 @@ package app.musiceditorclient.models;
 
 import app.musiceditorclient.services.FFmpegService;
 import app.musiceditorclient.services.FfprobeService;
+import javafx.beans.property.SimpleIntegerProperty;
 
 import java.io.File;
 import java.util.Objects;
@@ -9,31 +10,28 @@ import java.util.Objects;
 public class Clip implements Comparable<Clip>{
 
     private File wavFile;
-    private int timelineMsPosition = 0; // where it stands in timeline
+    private SimpleIntegerProperty timelineMsPosition; // where it stands in timeline
     private int length = 0;
 
 
-    public Clip() {
-        this.wavFile = null;
-    }
-    public Clip(int timelineMsPosition, int length) {
-        this.wavFile = null;
-    }
-
     public Clip(File wavFile, int timelineStartSample) {
+        this.timelineMsPosition = new SimpleIntegerProperty(0);
+
         this.wavFile = wavFile;
-        this.timelineMsPosition = timelineStartSample;
+        this.timelineMsPosition.set(timelineStartSample);
 
         this.length = FfprobeService.getFileLength(wavFile);
 
         if (FfprobeService.getFileSampleRate(this.wavFile) != 48000)
             FFmpegService.setSampleRate(this.wavFile);
 
+
+
     }
 
     @Override
     public int compareTo(Clip o) {
-        return Double.compare(this.timelineMsPosition, o.timelineMsPosition);
+        return Double.compare(this.timelineMsPosition.get(), o.timelineMsPosition.get());
     }
 
     @Override
@@ -62,12 +60,14 @@ public class Clip implements Comparable<Clip>{
     }
 
     public int getTimelineMsPosition() {
-        return timelineMsPosition;
+        return timelineMsPosition.get();
     }
 
     public void setTimelineMsPosition(int timelineMsPosition) {
-        this.timelineMsPosition = timelineMsPosition;
+        this.timelineMsPosition.set(timelineMsPosition);
     }
+
+    public SimpleIntegerProperty getTimelineMsPositionProperty() { return this.timelineMsPosition; }
 
     public int getLength() {
         return length;
@@ -77,5 +77,8 @@ public class Clip implements Comparable<Clip>{
         this.length = length;
     }
 
-    public int getEndPosition() { return this.timelineMsPosition + this.length; }
+    public int getEndPosition() { return this.timelineMsPosition.get() + this.length; }
+
+
+
 }

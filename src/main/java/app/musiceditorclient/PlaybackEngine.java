@@ -2,22 +2,25 @@ package app.musiceditorclient;
 
 import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.models.Track;
+import javafx.application.Platform;
+import javafx.beans.property.SimpleIntegerProperty;
 
 import javax.sound.sampled.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class PlaybackEngine {
 
     private final int FRAME_RATE = 48;
-    private final int SAMPLE_RATE = 48;
+    private final int SAMPLE_RATE = 48000;
     private final int FRAME_SIZE = 6;
     private final int NORMALISED_FRAME_RATE = FRAME_RATE * FRAME_SIZE;
 
     private final AudioFormat format = new AudioFormat(
             AudioFormat.Encoding.PCM_SIGNED, // encoding
-            SAMPLE_RATE*1000,                // sampleRate (Hz)
+            SAMPLE_RATE,                // sampleRate (Hz)
             24,                              // sampleSizeInBits
             2,                               // channels (2 = stereo)
             6,                               // frameSize (bytes por frame)
@@ -28,79 +31,79 @@ public class PlaybackEngine {
     private final DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
 
 
-    private List<Track> tracks;
+    private final List<Track> tracks = new ArrayList<>();
     private int songLength = 0;
 
-    public PlaybackEngine(List<Track> tracks) {
-        this.tracks = tracks;
+    public SimpleIntegerProperty seeker = new SimpleIntegerProperty(0);
 
-        songLength = Collections.max(tracks).getLength();
+    public PlaybackEngine() {}
 
+    public void addTrack(Track track) {
+        this.tracks.add(track);
     }
 
     public void play() {
-        byte[] mixed = getMixedTracks();
+        songLength = Collections.max(tracks).getLength();
+        if (songLength != 0) {
+            byte[] mixed = getMixedTracks();
 
-        try (SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info)) {
-            line.open(format);
-            line.start();
+            try (SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info)) {
+                line.open(format);
+                line.start();
 
-            line.flush();
-            line.write(mixed, 0, mixed.length);
+                int totalFrames = mixed.length / FRAME_SIZE;
+                int writtenFrames = 0;
+                int bufferFrames = 1024;
+                byte[] buffer = new byte[bufferFrames * FRAME_SIZE];
 
-            line.drain();
-            line.stop();
-        } catch (LineUnavailableException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    public void playLoop(int iterations) {
-        byte[] mixed = getMixedTracks();
+                seeker.set(0);
+                long lastUiPushNanos = 0L;
+                long baseFrame = -1L;
 
-        try (SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info)) {
-            line.open(format);
-            line.start();
+                while (writtenFrames < totalFrames) {
+                    int chunkFrames = Math.min(bufferFrames, totalFrames - writtenFrames);
 
-            for (int i = 0; i < iterations; i++) {
-                line.flush();
-                line.write(mixed, 0, mixed.length);
-            }
+                    System.arraycopy(
+                            mixed,
+                            writtenFrames * FRAME_SIZE,
+                            buffer,
+                            0,
+                            chunkFrames * FRAME_SIZE
+                    );
 
-            line.drain();
-            line.stop();
-        } catch (LineUnavailableException e) {
-            throw new RuntimeException(e);
-        }
-    }
+                    line.write(buffer, 0, chunkFrames * FRAME_SIZE);
+                    writtenFrames += chunkFrames;
 
-    public void playLoop() {
-        byte[] mixed = getMixedTracks();
-
-        try (SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info)) {
-            line.open(format);
-            line.start();
-            try{
-                while (true) {
-                    line.flush();
-                    line.write(mixed, 0, mixed.length);
+                    long now = System.nanoTime();
+                    if (now - lastUiPushNanos >= 10_000_000L || writtenFrames >= totalFrames) {
+                        long currentFrame = line.getLongFramePosition();
+                        if (baseFrame < 0L) {
+                            baseFrame = currentFrame;
+                        }
+                        int ms = (int) Math.max(0L, (currentFrame - baseFrame) / FRAME_RATE);
+                        seeker.set(ms);
+                        lastUiPushNanos = now;
+                    }
                 }
-            } finally {
 
                 line.drain();
+                seeker.set(songLength);
                 line.stop();
+                System.out.println("Fin de reproduccion");
 
+            } catch (LineUnavailableException e) {
+                throw new RuntimeException(e);
             }
-
-        } catch (LineUnavailableException e) {
-            throw new RuntimeException(e);
-        }
+        } else System.out.println("Songlength == 0");
     }
+
 
 
     private byte[] getMixedTracks() {
         byte[] mixed = new byte[ songLength * NORMALISED_FRAME_RATE ];
 
+        System.out.println(tracks);
         for (Track track:tracks) mixPCM24Stereo(mixed, getTrackInPCM(track), mixed);
 
         return mixed;
@@ -136,12 +139,19 @@ public class PlaybackEngine {
     }
 
     private static void mixPCM24Stereo(byte[] in1, byte[] in2, byte[] out) {
-        for (int i = 0; i < out.length; i += 3) {
-            int v1 = pcm24ToIntLE(in1, i);
-            int v2 = pcm24ToIntLE(in2, i);
-            int mix = (v1 + v2) / 2;
-            mix = Math.max(-8388608, Math.min(mix, 8388607));
-            intToPCM24LE(mix, out, i);
+        // 24-bit stereo: 6 bytes por frame (L=3, R=3).
+        for (int i = 0; i < out.length; i += 6) {
+            int l1 = pcm24ToIntLE(in1, i);
+            int l2 = pcm24ToIntLE(in2, i);
+            int mixL = (l1 + l2) / 2;
+            mixL = Math.max(-8388608, Math.min(mixL, 8388607));
+            intToPCM24LE(mixL, out, i);
+
+            int r1 = pcm24ToIntLE(in1, i + 3);
+            int r2 = pcm24ToIntLE(in2, i + 3);
+            int mixR = (r1 + r2) / 2;
+            mixR = Math.max(-8388608, Math.min(mixR, 8388607));
+            intToPCM24LE(mixR, out, i + 3);
         }
     }
 
