@@ -3,6 +3,7 @@ package app.musiceditorclient;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -14,6 +15,8 @@ public class MainApplication extends Application {
         Scene scene = new Scene(fxmlLoader.load());
 
         MainController controller = fxmlLoader.getController();
+        controller.setOnProjectLoadedListener(projectPath ->
+                stage.setTitle(projectPath.getFileName().toString().replace(".musicproject", "")));
 
         stage.setTitle("Music Editor");
         stage.setMaximized(true);
@@ -34,6 +37,15 @@ public class MainApplication extends Application {
                 event.consume();
 
             }
+        });
+
+        scene.setOnKeyPressed(event -> {
+            if (event.isControlDown() && event.getCode() == KeyCode.S)
+                controller.saveProject();
+
+            if (event.isShiftDown() && event.getCode() == KeyCode.ESCAPE)
+                stage.close();
+
         });
 
         stage.show();

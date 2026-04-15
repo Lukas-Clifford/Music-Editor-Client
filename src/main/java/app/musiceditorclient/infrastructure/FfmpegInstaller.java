@@ -4,132 +4,57 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class FfmpegInstaller {
 
-    private static final String APP_DIR_NAME = "MusicEditor";
     private static final String RESOURCE_BASE = "/app/musiceditorclient/dependencies/ffmpegSuite/";
 
-    private static Path ffprobePath;
-    private static Path ffmpegPath ;
-
     public static void ensureInstalled() throws IOException {
-        // platform and home properties to compare later
-        String platform = System.getProperty("os.name");
-        String home = System.getProperty("user.home");
+        Path userDataDir = AppFileUtils.getAppDataDir();
+        String platformFolderName = AppFileUtils.getPlatformFolderName();
 
-        String platformFolderName;
-        Path userDataDir;
-
-        // checks for Windows, Mac and Linux and establishes the data folder
-        if (platform.contains("win")) {
-            String appData = System.getenv("APPDATA");
-            userDataDir = Paths.get(appData, APP_DIR_NAME);
-            platformFolderName = "windows";
-        } else if (platform.contains("mac") || platform.contains("darwin")) {
-            userDataDir = Paths.get(home, "Library", "Application Support", APP_DIR_NAME);
-            platformFolderName = "mac";
-        } else {
-            userDataDir = Paths.get(home, ".local", "share", APP_DIR_NAME);
-            platformFolderName = "linux";
+        if (!Files.exists(userDataDir)) {
+            Files.createDirectories(userDataDir);
         }
 
-        // Create the folder
-        if (!Files.exists(userDataDir)) Files.createDirectory(userDataDir);
+        String ffprobeFileName = AppFileUtils.isWindows() ? "ffprobe.exe" : "ffprobe";
+        String ffmpegFileName = AppFileUtils.isWindows() ? "ffmpeg.exe" : "ffmpeg";
 
-        // In windows, files are executables
-        String ffprobeFileName = platform.contains("win") ? "ffprobe.exe":"ffprobe";
-        String ffmpegFileName = platform.contains("win") ? "ffmpeg.exe":"ffmpeg";
-
-        // Final path where files are going to be copied
-        ffprobePath = userDataDir.resolve(ffprobeFileName);
-        ffmpegPath = userDataDir.resolve(ffmpegFileName);
+        Path ffprobePath = userDataDir.resolve(ffprobeFileName);
+        Path ffmpegPath = userDataDir.resolve(ffmpegFileName);
 
         try (
-                InputStream ffprobeStream = FfmpegInstaller.class.getResourceAsStream(RESOURCE_BASE + platformFolderName + "/" + ffprobeFileName);
-                InputStream ffmpegStream = FfmpegInstaller.class.getResourceAsStream(RESOURCE_BASE + platformFolderName + "/" + ffmpegFileName)
-                ) {
-
-            // copies ffprobe
+                InputStream ffprobeStream = FfmpegInstaller.class.getResourceAsStream(
+                        RESOURCE_BASE + platformFolderName + "/" + ffprobeFileName
+                );
+                InputStream ffmpegStream = FfmpegInstaller.class.getResourceAsStream(
+                        RESOURCE_BASE + platformFolderName + "/" + ffmpegFileName
+                )
+        ) {
             if (ffprobeStream == null) throw new IOException("Missing resource: " + ffprobeFileName);
-            Files.copy(
-                    ffprobeStream, ffprobePath, StandardCopyOption.REPLACE_EXISTING
-            );
-            // gives exec permission
-            boolean ffprobeHasPermission = ffprobePath.toFile().setExecutable(true, false);
-            if (!ffprobeHasPermission) throw new IOException("Could not set executable: " + ffprobePath);
+            Files.copy(ffprobeStream, ffprobePath, StandardCopyOption.REPLACE_EXISTING);
+            if (!ffprobePath.toFile().setExecutable(true, false)) {
+                throw new IOException("Could not set executable: " + ffprobePath);
+            }
 
-            // copies ffmpeg
             if (ffmpegStream == null) throw new IOException("Missing resource: " + ffmpegFileName);
-            Files.copy(
-                    ffmpegStream, ffmpegPath, StandardCopyOption.REPLACE_EXISTING
-            );
-            // gives exec permission
-            boolean ffmpegHasPermission = ffmpegPath.toFile().setExecutable(true, false);
-            if (!ffmpegHasPermission) throw new IOException("Could not set executable: " + ffmpegPath);
-
+            Files.copy(ffmpegStream, ffmpegPath, StandardCopyOption.REPLACE_EXISTING);
+            if (!ffmpegPath.toFile().setExecutable(true, false)) {
+                throw new IOException("Could not set executable: " + ffmpegPath);
+            }
         }
-
     }
 
-    public static Path getFfprobePath(){
-        // platform and home properties to compare later
-        String platform = System.getProperty("os.name");
-        String home = System.getProperty("user.home");
-
-        String platformFolderName;
-        Path userDataDir;
-
-        // checks for Windows, Mac and Linux and establishes the data folder
-        if (platform.contains("win")) {
-            String appData = System.getenv("APPDATA");
-            userDataDir = Paths.get(appData, APP_DIR_NAME);
-            platformFolderName = "windows";
-        } else if (platform.contains("mac") || platform.contains("darwin")) {
-            userDataDir = Paths.get(home, "Library", "Application Support", APP_DIR_NAME);
-            platformFolderName = "mac";
-        } else {
-            userDataDir = Paths.get(home, ".local", "share", APP_DIR_NAME);
-            platformFolderName = "linux";
-        }
-
-        // In windows, files are executables
-        String ffprobeFileName = platform.contains("win") ? "ffprobe.exe":"ffprobe";
-        String ffmpegFileName = platform.contains("win") ? "ffmpeg.exe":"ffmpeg";
-
-        // Final path where files are going to be copied
+    public static Path getFfprobePath() {
+        Path userDataDir = AppFileUtils.getAppDataDir();
+        String ffprobeFileName = AppFileUtils.isWindows() ? "ffprobe.exe" : "ffprobe";
         return userDataDir.resolve(ffprobeFileName);
     }
 
     public static Path getFfmpegPath() {
-        // platform and home properties to compare later
-        String platform = System.getProperty("os.name");
-        String home = System.getProperty("user.home");
-
-        String platformFolderName;
-        Path userDataDir;
-
-        // checks for Windows, Mac and Linux and establishes the data folder
-        if (platform.contains("win")) {
-            String appData = System.getenv("APPDATA");
-            userDataDir = Paths.get(appData, APP_DIR_NAME);
-            platformFolderName = "windows";
-        } else if (platform.contains("mac") || platform.contains("darwin")) {
-            userDataDir = Paths.get(home, "Library", "Application Support", APP_DIR_NAME);
-            platformFolderName = "mac";
-        } else {
-            userDataDir = Paths.get(home, ".local", "share", APP_DIR_NAME);
-            platformFolderName = "linux";
-        }
-
-        // In windows, files are executables
-        String ffprobeFileName = platform.contains("win") ? "ffprobe.exe":"ffprobe";
-        String ffmpegFileName = platform.contains("win") ? "ffmpeg.exe":"ffmpeg";
-
-        // Final path where files are going to be copied
+        Path userDataDir = AppFileUtils.getAppDataDir();
+        String ffmpegFileName = AppFileUtils.isWindows() ? "ffmpeg.exe" : "ffmpeg";
         return userDataDir.resolve(ffmpegFileName);
-
     }
 }

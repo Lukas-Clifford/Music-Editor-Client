@@ -11,43 +11,53 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TrackPane {
+public class TrackPane implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private Track track;
-
     private final List<ClipPane> clipPanes = new ArrayList<>();
 
-    private final Pane controlPane = new Pane();
-    private final Pane timeLinePane = new Pane();
+    private transient Pane controlPane;
+    private transient Pane timeLinePane;
 
-    private final FloatProperty zoomFactor;
-    private final FloatProperty clipStartOffset = new SimpleFloatProperty(0f);
+    private transient FloatProperty zoomFactor;
+    private transient FloatProperty clipStartOffset = new SimpleFloatProperty(0f);
     private double lastMouseX = 0d;
 
-    private final ContextMenu timeLinePaneContextMenu = new ContextMenu();
-    private final ContextMenu controlPaneContextMenu = new ContextMenu();
-    private EventHandler<ActionEvent> onDeleteAction;
-    private EventHandler<ActionEvent> onAddClipAction;
-    private EventHandler<ActionEvent> onAddReiterativeClipAction;
+    private transient ContextMenu timeLinePaneContextMenu;
+    private transient ContextMenu controlPaneContextMenu;
+    private transient EventHandler<ActionEvent> onDeleteAction;
+    private transient EventHandler<ActionEvent> onAddClipAction;
+    private transient EventHandler<ActionEvent> onAddReiterativeClipAction;
 
     public TrackPane(FloatProperty zoomFactor) {
         this.track = new Track();
-
         this.zoomFactor = new SimpleFloatProperty(1f);
         this.zoomFactor.bind(zoomFactor);
+        this.clipStartOffset = new SimpleFloatProperty(0f);
+        initUi();
+    }
 
+    private void initUi() {
+        controlPane = new Pane();
+        timeLinePane = new Pane();
         timeLinePane.prefHeightProperty().bind(this.zoomFactor.multiply(100));
-        timeLinePane.prefWidthProperty().bind(this.zoomFactor.multiply(36000000)); // max length 10 mins
+        timeLinePane.prefWidthProperty().bind(this.zoomFactor.multiply(36000000));
         timeLinePane.setStyle("-fx-background-color:lightgray;");
-
         setupTimeLinePaneContextMenu();
         setupControlPaneContextMenu();
     }
 
     private void setupControlPaneContextMenu() {
+        controlPaneContextMenu = new ContextMenu();
+
         MenuItem deleteItem = new MenuItem("Eliminar");
         deleteItem.setOnAction(event -> {
             if (onDeleteAction != null) onDeleteAction.handle(event);
@@ -66,6 +76,8 @@ public class TrackPane {
     }
 
     private void setupTimeLinePaneContextMenu() {
+        timeLinePaneContextMenu = new ContextMenu();
+
         MenuItem addClipItem = new MenuItem("Añadir clip");
         addClipItem.setOnAction(event -> {
             if (onAddClipAction != null) onAddClipAction.handle(event);
@@ -116,14 +128,12 @@ public class TrackPane {
     }
 
     public Track getTrack() {
-//        return new Track(clipPanes.stream().map(ClipPane::getAudioClip).toList());
         return track;
     }
 
     public void addAudioClip(Clip clip) {
         ClipPane clipPane = new ClipPane(clip, zoomFactor);
         clipPanes.add(clipPane);
-
         track.addClip(clip);
 
         clipPane.setOnRemoveAction(event -> removeAudioClip(clipPane));
@@ -144,5 +154,19 @@ public class TrackPane {
 
     public Pane getTimeLinePane() {
         return timeLinePane;
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        this.zoomFactor = new SimpleFloatProperty(1f);
+        this.clipStartOffset = new SimpleFloatProperty(0f);
+        initUi();
+
+        for (ClipPane clipPane : clipPanes) {
+            clipPane.rebuildAfterDeserialization(zoomFactor);
+            clipPane.setOnRemoveAction(event -> removeAudioClip(clipPane));
+            clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty().subtract(10));
+            timeLinePane.getChildren().add(clipPane);
+        }
     }
 }

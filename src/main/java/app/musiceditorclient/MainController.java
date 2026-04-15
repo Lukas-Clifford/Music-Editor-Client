@@ -1,8 +1,10 @@
 package app.musiceditorclient;
 
+import app.musiceditorclient.infrastructure.AppFileUtils;
 import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.view.TimelineSeekerPane;
 import app.musiceditorclient.view.TrackPane;
+import javafx.application.Platform;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
@@ -13,11 +15,15 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
 
+import javax.crypto.spec.PSource;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class MainController {
 
@@ -35,11 +41,22 @@ public class MainController {
 
     private final ContextMenu addTrackContextMenu = new ContextMenu();
 
+    private Path currentProject;
+
+    private Consumer<Path> onProjectLoadedListener;
+
+    public void setOnProjectLoadedListener(Consumer<Path> onProjectLoadedListener) {
+        this.onProjectLoadedListener = onProjectLoadedListener;
+    }
+
+    private void notifyProjectLoaded() {
+        if (onProjectLoadedListener != null && currentProject != null) {
+            onProjectLoadedListener.accept(currentProject);
+        }
+    }
+
     @FXML
     public void initialize() {
-        clipStartOffset.addListener((obs, oldValue, newValue) ->
-                System.out.println("clipStartOffset = " + newValue.floatValue()));
-
         tracksTableView.setItems(FXCollections.observableList(trackPanes));
         tracksTableView.setSelectionModel(null);
         tracksTableView.setOnSort(Event::consume);
@@ -63,6 +80,25 @@ public class MainController {
 
         addNewTrack();
         addNewTrack();
+
+        try {
+            String lastOpenedProject = AppFileUtils.readProperty("LAST_OPENED_PROJECT");
+            if (!lastOpenedProject.equals("null")) {
+
+                currentProject = new File(lastOpenedProject).toPath();
+                trackPanes = AppFileUtils.readTrackPanesFromMusicProject(currentProject);
+                tracksTableView.setItems(FXCollections.observableList(trackPanes));
+                trackPanes.forEach(this::configureTrackPane);
+                tracksTableView.refresh();
+
+
+                Platform.runLater(this::notifyProjectLoaded);
+
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println(e.getMessage());
+        }
+
     }
 
     private void configureTrackPane(TrackPane trackPane) {
@@ -159,6 +195,95 @@ public class MainController {
         addTrackItem.setOnAction(event -> addNewTrack());
 
         addTrackContextMenu.getItems().add(addTrackItem);
+    }
+
+    @FXML
+    private void createNewProject() {
+        trackPanes = new ArrayList<>();
+        currentProject = null;
+
+        tracksTableView.setItems(FXCollections.observableList(trackPanes));
+        tracksTableView.getItems().clear();
+        tracksTableView.refresh();
+
+        addNewTrack();
+        addNewTrack();
+
+        try {
+            createProject();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+
+        saveProject();
+        notifyProjectLoaded();
+    }
+
+    private void createProject() {
+
+        TextInputDialog repetitionsDialog = new TextInputDialog("Proyecto");
+        repetitionsDialog.setTitle("Crear nuevo proyecto");
+        repetitionsDialog.setHeaderText("Nombre del proyecto");
+        repetitionsDialog.setContentText("Nombre: ");
+
+        Optional<String> repetitionsResult = repetitionsDialog.showAndWait();
+        if (repetitionsResult.isEmpty()) {
+            return;
+        }
+
+        try {
+            currentProject = AppFileUtils.createMusicProjectFile(repetitionsResult.get());
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+
+        saveProject();
+    }
+
+    @FXML
+    public void saveProject() {
+        try {
+            if (currentProject == null) {
+                createProject();
+                if (currentProject == null) return;
+            }
+
+            AppFileUtils.writeTrackPanesToMusicProject(currentProject, trackPanes);
+            AppFileUtils.writeProperty("LAST_OPENED_PROJECT", currentProject.toAbsolutePath().toString());
+
+            System.out.println("Archivo guardado");
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    @FXML
+    private void openProject() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Seleccionar proyecto");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos musicproject (*.musicproject)", "*.musicproject");
+        fileChooser.getExtensionFilters().add(extFilter);
+
+        fileChooser.setInitialDirectory(AppFileUtils.getProjectsDir().toFile());
+
+        File file = fileChooser.showOpenDialog(tracksTableView.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+
+        try {
+            currentProject = file.toPath();
+            trackPanes = AppFileUtils.readTrackPanesFromMusicProject(file.toPath());
+            tracksTableView.setItems(FXCollections.observableList(trackPanes));
+            trackPanes.forEach(this::configureTrackPane);
+            tracksTableView.refresh();
+
+            AppFileUtils.writeProperty("LAST_OPENED_PROJECT", file.getAbsolutePath());
+
+            notifyProjectLoaded();
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     @FXML

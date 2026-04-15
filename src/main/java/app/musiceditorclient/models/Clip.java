@@ -4,29 +4,28 @@ import app.musiceditorclient.services.FFmpegService;
 import app.musiceditorclient.services.FfprobeService;
 import javafx.beans.property.SimpleIntegerProperty;
 
-import java.io.File;
+import java.io.*;
 import java.util.Objects;
 
-public class Clip implements Comparable<Clip>{
+public class Clip implements Comparable<Clip>, Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private File wavFile;
-    private SimpleIntegerProperty timelineMsPosition; // where it stands in timeline
+    private transient SimpleIntegerProperty timelineMsPosition = new SimpleIntegerProperty(0);
+    private int timelineMsPositionValue = 0;
     private int length = 0;
 
-
     public Clip(File wavFile, int timelineStartSample) {
-        this.timelineMsPosition = new SimpleIntegerProperty(0);
-
         this.wavFile = wavFile;
+        this.timelineMsPositionValue = timelineStartSample;
         this.timelineMsPosition.set(timelineStartSample);
-
         this.length = FfprobeService.getFileLength(wavFile);
 
-        if (FfprobeService.getFileSampleRate(this.wavFile) != 48000)
+        if (FfprobeService.getFileSampleRate(this.wavFile) != 48000) {
             FFmpegService.setSampleRate(this.wavFile);
-
-
-
+        }
     }
 
     @Override
@@ -38,12 +37,14 @@ public class Clip implements Comparable<Clip>{
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Clip clip = (Clip) o;
-        return timelineMsPosition == clip.timelineMsPosition && Double.compare(length, clip.length) == 0 && Objects.equals(wavFile, clip.wavFile);
+        return timelineMsPosition.get() == clip.timelineMsPosition.get()
+                && Double.compare(length, clip.length) == 0
+                && Objects.equals(wavFile, clip.wavFile);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(wavFile, timelineMsPosition, length);
+        return Objects.hash(wavFile, timelineMsPosition.get(), length);
     }
 
     @Override
@@ -64,10 +65,16 @@ public class Clip implements Comparable<Clip>{
     }
 
     public void setTimelineMsPosition(int timelineMsPosition) {
+        this.timelineMsPositionValue = timelineMsPosition;
         this.timelineMsPosition.set(timelineMsPosition);
     }
 
-    public SimpleIntegerProperty getTimelineMsPositionProperty() { return this.timelineMsPosition; }
+    public SimpleIntegerProperty getTimelineMsPositionProperty() {
+        if (timelineMsPosition == null) {
+            timelineMsPosition = new SimpleIntegerProperty(timelineMsPositionValue);
+        }
+        return this.timelineMsPosition;
+    }
 
     public int getLength() {
         return length;
@@ -77,8 +84,12 @@ public class Clip implements Comparable<Clip>{
         this.length = length;
     }
 
-    public int getEndPosition() { return this.timelineMsPosition.get() + this.length; }
+    public int getEndPosition() {
+        return this.timelineMsPosition.get() + this.length;
+    }
 
-
-
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        this.timelineMsPosition = new SimpleIntegerProperty(timelineMsPositionValue);
+    }
 }

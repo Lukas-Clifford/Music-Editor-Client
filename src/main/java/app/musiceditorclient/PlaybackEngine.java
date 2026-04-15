@@ -38,6 +38,11 @@ public class PlaybackEngine {
 
     public PlaybackEngine() {}
 
+    public PlaybackEngine(List<Track> tracks) {
+        this.tracks.addAll(tracks);
+        songLength = Collections.max(tracks).getLength();
+    }
+
     public void addTrack(Track track) {
         this.tracks.add(track);
     }

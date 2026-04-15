@@ -12,48 +12,53 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.Optional;
 
-public class ClipPane extends Pane {
+public class ClipPane extends Pane implements Serializable {
 
-    private Label clipNameLabel;
+    private static final long serialVersionUID = 1L;
+
     private Clip audioClip;
 
-    public FloatProperty zoomFactor;
+    private transient Label clipNameLabel;
+    public transient FloatProperty zoomFactor = new SimpleFloatProperty(1f);
 
     private double[] offset = new double[2];
 
-    private final ContextMenu contextMenu = new ContextMenu();
+    private transient ContextMenu contextMenu;
 
-    // Context menu actions exposed for controller-level handling
-    private EventHandler<ActionEvent> onMoveAction;
-    private EventHandler<ActionEvent> onTrimAction;
-    private EventHandler<ActionEvent> onRemoveAction;
+    private transient EventHandler<ActionEvent> onMoveAction;
+    private transient EventHandler<ActionEvent> onTrimAction;
+    private transient EventHandler<ActionEvent> onRemoveAction;
 
     public ClipPane(Clip clip, FloatProperty zoomFactor) {
-
         this.audioClip = clip;
-
-        // LABEL
-        this.clipNameLabel = new Label(clip.getWavFile().getName() + " : " + (clip.getLength()) + "ms");
-        this.clipNameLabel.setMouseTransparent(true);
-        this.getChildren().add(clipNameLabel);
-        clipNameLabel.layoutBoundsProperty().addListener((observable, oldValue, newValue) -> {
-            if (this.clipNameLabel.getWidth() > this.getWidth()) this.setClipNameLabel("");
-        });
-
-        // PROPERTY BINDING
         this.zoomFactor = new SimpleFloatProperty(1f);
         this.zoomFactor.bind(zoomFactor);
+        initUi();
+    }
 
-        this.prefWidthProperty().bind(this.zoomFactor.multiply(clip.getLength()));
-        this.layoutXProperty().bind(this.audioClip.getTimelineMsPositionProperty().multiply(zoomFactor));
+    private void initUi() {
+        clipNameLabel = new Label(audioClip.getWavFile().getName() + " : " + audioClip.getLength() + "ms");
+        clipNameLabel.setMouseTransparent(true);
+        getChildren().add(clipNameLabel);
+        clipNameLabel.layoutBoundsProperty().addListener((observable, oldValue, newValue) -> {
+            if (clipNameLabel.getWidth() > getWidth()) setClipNameLabel("");
+        });
 
-        this.setStyle("-fx-background-color:aquamarine;");
+        prefWidthProperty().bind(zoomFactor.multiply(audioClip.getLength()));
+        layoutXProperty().bind(audioClip.getTimelineMsPositionProperty().multiply(zoomFactor));
+
+        setStyle("-fx-background-color:aquamarine;");
         setupContextMenu();
     }
 
     private void setupContextMenu() {
+        contextMenu = new ContextMenu();
+
         MenuItem moveItem = new MenuItem("Mover");
         moveItem.setOnAction(event -> {
             if (onMoveAction != null) {
@@ -92,7 +97,7 @@ public class ClipPane extends Pane {
 
         contextMenu.getItems().addAll(moveItem, trimItem, removeItem);
 
-        this.setOnMousePressed(event -> {
+        setOnMousePressed(event -> {
             if (event.getButton() == MouseButton.SECONDARY) {
                 contextMenu.show(this, event.getScreenX(), event.getScreenY());
                 event.consume();
@@ -100,6 +105,12 @@ public class ClipPane extends Pane {
                 contextMenu.hide();
             }
         });
+    }
+
+    public void rebuildAfterDeserialization(FloatProperty zoomFactor) {
+        this.zoomFactor = new SimpleFloatProperty(1f);
+        this.zoomFactor.bind(zoomFactor);
+        initUi();
     }
 
     public void setOnMoveAction(EventHandler<ActionEvent> onMoveAction) {
@@ -118,7 +129,7 @@ public class ClipPane extends Pane {
         audioClip.setTimelineMsPosition(milliseconds);
     }
 
-    public Clip getAudioClip(){
+    public Clip getAudioClip() {
         return audioClip;
     }
 
@@ -128,5 +139,9 @@ public class ClipPane extends Pane {
 
     public void setClipNameLabel(String clipName) {
         this.clipNameLabel.setText(clipName);
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
     }
 }
