@@ -70,6 +70,10 @@ public class PlaybackEngine {
         pauseRequested = false;
     }
 
+    public void clearStopRequest() {
+        stopRequested = false;
+    }
+
     public void requestPause() {
         pauseRequested = true;
     }
@@ -87,7 +91,6 @@ public class PlaybackEngine {
     }
 
     public void play() {
-
         if (tracks.isEmpty()) {
             System.out.println("No tracks to play");
             return;
@@ -108,30 +111,17 @@ public class PlaybackEngine {
             line.start();
 
             int totalFrames = mixed.length / FRAME_SIZE;
-            int writtenFrames = 0;
             int bufferFrames = 1024;
             byte[] buffer = new byte[bufferFrames * FRAME_SIZE];
 
+            while (!stopRequested) {
+                int writtenFrames = 0;
+                seeker.set(0);
+                long lastUiPushNanos = 0L;
+                long baseFrame = -1L;
 
-            seeker.set(0);
-            long lastUiPushNanos = 0L;
-            long baseFrame = -1L;
-
-            while (writtenFrames < totalFrames && !stopRequested) {
-                if (pauseRequested) {
-                    line.stop();
-                    while (pauseRequested && !stopRequested) {
-                        Thread.sleep(20);
-                    }
-                    if (stopRequested) {
-                        break;
-                    }
-                    line.start();
-                    baseFrame = line.getLongFramePosition();
-                    continue;
-                }
-
-                int chunkFrames = Math.min(bufferFrames, totalFrames - writtenFrames);
+                while (writtenFrames < totalFrames && !stopRequested && !pauseRequested) {
+                    int chunkFrames = Math.min(bufferFrames, totalFrames - writtenFrames);
 
                     System.arraycopy(
                             mixed,
@@ -156,14 +146,22 @@ public class PlaybackEngine {
                     }
                 }
 
-            if (!stopRequested && !pauseRequested) {
-                line.drain();
-                seeker.set(songLength);
-                System.out.println("Fin de reproduccion");
-            } else {
-                line.stop();
-                line.flush();
-                System.out.println(pauseRequested ? "Reproducción pausada" : "Reproducción detenida");
+                if (pauseRequested) {
+                    line.stop();
+                    while (pauseRequested && !stopRequested) {
+                        Thread.sleep(20);
+                    }
+                    if (stopRequested) {
+                        break;
+                    }
+                    line.start();
+                } else if (!stopRequested) {
+                    line.drain();
+                    seeker.set(songLength);
+                    line.stop();
+                    line.flush();
+                    line.start();
+                }
             }
 
         } catch (LineUnavailableException | InterruptedException e) {
@@ -189,17 +187,21 @@ public class PlaybackEngine {
     private byte[] getTrackInPCM(Track track){
         byte[] bufferTrack = new byte[songLength * NORMALISED_FRAME_RATE];
 
-        for ( Clip clip: track.getClips() ) {
-            int frames = clip.getLength() * NORMALISED_FRAME_RATE;
+        for (Clip clip : track.getClips()) {
+            int clipBytes = clip.getLength() * NORMALISED_FRAME_RATE;
             int startByte = clip.getTimelineMsPosition() * NORMALISED_FRAME_RATE;
 
             try (AudioInputStream ais = AudioSystem.getAudioInputStream(clip.getWavFile())) {
-
-                byte[] buffer = new byte[frames];
-                int read = ais.read(buffer, 0, frames);
+                byte[] buffer = new byte[clipBytes];
+                int read = ais.read(buffer, 0, clipBytes);
 
                 if (read > 0) {
-                    for (int b = 0; b < read; b++) {
+                    int maxWritable = Math.min(read, bufferTrack.length - startByte);
+                    if (maxWritable <= 0) {
+                        continue;
+                    }
+
+                    for (int b = 0; b < maxWritable; b++) {
                         int sample = bufferTrack[startByte + b] + buffer[b];
                         bufferTrack[startByte + b] = (byte) sample;
                     }
@@ -244,6 +246,10 @@ public class PlaybackEngine {
     }
 
     public void exportToWav(Path outputFile) {
+        if (tracks.isEmpty()) {
+            return;
+        }
+
         songLength = Collections.max(tracks).getLength();
         if (songLength == 0) {
             System.out.println("Songlength == 0");

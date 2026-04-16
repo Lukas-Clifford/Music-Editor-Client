@@ -170,4 +170,16 @@ public class TrackPane implements Serializable {
             timeLinePane.getChildren().add(clipPane);
         }
     }
+
+    public void bindZoomFactor(FloatProperty zoomFactor) {
+        this.zoomFactor.bind(zoomFactor);
+        clipPanes.forEach(clipPane -> clipPane.bindZoomFactor(zoomFactor));
+    }
+
+    public void bindClipStartOffset(FloatProperty clipStartOffset) {
+        clipPanes.forEach(clipPane ->
+                clipPane.layoutXProperty().bind(clipPane.getAudioClip().getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset))
+        );
+
+    }
 }

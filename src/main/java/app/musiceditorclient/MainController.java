@@ -104,6 +104,8 @@ public class MainController {
         trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
         trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
         trackPane.clipStartOffsetProperty().bind(clipStartOffset);
+        trackPane.bindZoomFactor(zoomFactor);
+        trackPane.bindClipStartOffset(clipStartOffset);
     }
 
     private void removeTrack(TrackPane trackPane) {
@@ -112,7 +114,32 @@ public class MainController {
         tracksTableView.refresh();
     }
 
+    private void stopPlaybackForEdit() {
+        if (pe != null) {
+            pe.requestStop();
+        }
+        isPlaying = false;
+        playbackRunning = false;
+        playButton.setText("▶");
+    }
+
+    private void addTrackAndReloadEngine(TrackPane newTrack) {
+        stopPlaybackForEdit();
+        configureTrackPane(newTrack);
+        trackPanes.add(newTrack);
+        reloadPlaybackEngine();
+        tracksTableView.refresh();
+    }
+
+    @FXML
+    private void addNewTrack() {
+        TrackPane newTrack = new TrackPane(zoomFactor);
+        addTrackAndReloadEngine(newTrack);
+    }
+
     private void chooseAndAddClip(TrackPane trackPane) {
+        stopPlaybackForEdit();
+
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar clip");
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos WAV (*.wav)", "*.wav");
@@ -130,6 +157,7 @@ public class MainController {
 
         int startMs = calculateClipStartMs(trackPane);
         trackPane.addAudioClip(new Clip(file, startMs));
+        reloadPlaybackEngine();
     }
 
     private int calculateClipStartMs(TrackPane trackPane) {
@@ -139,6 +167,8 @@ public class MainController {
     }
 
     private void chooseAndAddReiterativeClip(TrackPane trackPane) {
+        stopPlaybackForEdit();
+
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar clip");
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos WAV (*.wav)", "*.wav");
@@ -182,6 +212,7 @@ public class MainController {
             for (int i = 0; i < repetitions; i++) {
                 trackPane.addAudioClip(new Clip(file, (int) (i * stepMs)));
             }
+            reloadPlaybackEngine();
         } catch (NumberFormatException ignored) {
             // Ignored
         }
@@ -296,14 +327,6 @@ public class MainController {
         reloadPlaybackEngine();
     }
 
-    @FXML
-    private void addNewTrack() {
-        TrackPane newTrack = new TrackPane(zoomFactor);
-        configureTrackPane(newTrack);
-        trackPanes.add(newTrack);
-        pe.addTrack(newTrack.getTrack());
-        tracksTableView.refresh();
-    }
 
     @FXML
     public void exportAudio() {
@@ -336,20 +359,26 @@ public class MainController {
     }
 
     private boolean isPlaying = false;
+    private volatile boolean playbackRunning = false;
     private Thread playbackThread;
 
     private void startPlayback() {
-        if (isPlaying) {
+        if (playbackRunning) {
             return;
         }
 
+        playbackRunning = true;
         isPlaying = true;
         playButton.setText("⏸");
 
         playbackThread = new Thread(() -> {
-            pe.play();
-            isPlaying = false;
-            Platform.runLater(() -> playButton.setText("▶"));
+            try {
+                pe.play();
+            } finally {
+                playbackRunning = false;
+                isPlaying = false;
+                Platform.runLater(() -> playButton.setText("▶"));
+            }
         });
         playbackThread.setDaemon(true);
         playbackThread.start();
@@ -363,12 +392,22 @@ public class MainController {
 
     @FXML
     public void play() {
+        if (playbackRunning && !pe.isPaused()) {
+            pausePlayback();
+            return;
+        }
+
         if (pe.isPaused()) {
             pe.clearPauseRequest();
-        } else if (isPlaying) {
-            pausePlayback();
-        } else {
-            startPlayback();
+            if (!playbackRunning) {
+                startPlayback();
+            } else {
+                isPlaying = true;
+                playButton.setText("⏸");
+            }
+            return;
         }
+
+        startPlayback();
     }
 }

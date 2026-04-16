@@ -144,4 +144,8 @@ public class ClipPane extends Pane implements Serializable {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
     }
+
+    public void bindZoomFactor(FloatProperty zoomFactor) {
+        this.zoomFactor.bind(zoomFactor);
+    }
 }
