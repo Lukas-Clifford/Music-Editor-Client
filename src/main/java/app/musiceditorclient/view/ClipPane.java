@@ -99,8 +99,8 @@ public class ClipPane extends Pane implements Serializable {
 
         setOnMousePressed(event -> {
             if (event.getButton() == MouseButton.SECONDARY) {
-                contextMenu.show(this, event.getScreenX(), event.getScreenY());
                 event.consume();
+                contextMenu.show(this, event.getScreenX(), event.getScreenY());
             } else if (contextMenu.isShowing()) {
                 contextMenu.hide();
             }

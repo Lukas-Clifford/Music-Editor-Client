@@ -35,6 +35,7 @@ public class MainController {
     public FloatProperty clipStartOffset = new SimpleFloatProperty(0f);
     public TimelineSeekerPane timelineSeekerPane;
     public Button addTrackButton;
+    public Button playButton;
 
     List<TrackPane> trackPanes = new ArrayList<>();
     PlaybackEngine pe;
@@ -99,9 +100,16 @@ public class MainController {
     }
 
     private void configureTrackPane(TrackPane trackPane) {
+        trackPane.setOnDeleteAction(event -> removeTrack(trackPane));
         trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
         trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
         trackPane.clipStartOffsetProperty().bind(clipStartOffset);
+    }
+
+    private void removeTrack(TrackPane trackPane) {
+        trackPanes.remove(trackPane);
+        pe.setTracks(trackPanes.stream().map(TrackPane::getTrack).toList());
+        tracksTableView.refresh();
     }
 
     private void chooseAndAddClip(TrackPane trackPane) {
@@ -327,9 +335,40 @@ public class MainController {
         pe.exportToWav(outputFile.toPath());
     }
 
+    private boolean isPlaying = false;
+    private Thread playbackThread;
+
+    private void startPlayback() {
+        if (isPlaying) {
+            return;
+        }
+
+        isPlaying = true;
+        playButton.setText("⏸");
+
+        playbackThread = new Thread(() -> {
+            pe.play();
+            isPlaying = false;
+            Platform.runLater(() -> playButton.setText("▶"));
+        });
+        playbackThread.setDaemon(true);
+        playbackThread.start();
+    }
+
+    private void pausePlayback() {
+        isPlaying = false;
+        pe.requestPause();
+        playButton.setText("Reproducir");
+    }
+
     @FXML
     public void play() {
-        System.out.println("Reproduciendo...");
-        new Thread(() -> pe.play()).start();
+        if (pe.isPaused()) {
+            pe.clearPauseRequest();
+        } else if (isPlaying) {
+            pausePlayback();
+        } else {
+            startPlayback();
+        }
     }
 }

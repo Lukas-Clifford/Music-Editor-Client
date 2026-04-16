@@ -157,7 +157,7 @@
                 </MenuBar>
                </left>
                <right>
-                  <Button minHeight="17.0" minWidth="38.0" mnemonicParsing="false" onAction="#play" prefHeight="22.0" prefWidth="38.0" text="▶" BorderPane.alignment="CENTER" />
+                  <Button fx:id="playButton" minHeight="17.0" minWidth="38.0" mnemonicParsing="false" onAction="#play" prefHeight="22.0" prefWidth="38.0" text="▶" BorderPane.alignment="CENTER" />
                </right>
             </BorderPane>
          </top>

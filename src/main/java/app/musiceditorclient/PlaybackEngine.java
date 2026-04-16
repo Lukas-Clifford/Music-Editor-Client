@@ -32,11 +32,13 @@ public class PlaybackEngine {
 
     private final DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
 
-
     private final List<Track> tracks = new ArrayList<>();
     private int songLength = 0;
 
     public SimpleIntegerProperty seeker = new SimpleIntegerProperty(0);
+
+    private volatile boolean stopRequested = false;
+    private volatile boolean pauseRequested = false;
 
     public PlaybackEngine() {}
 
@@ -63,27 +65,73 @@ public class PlaybackEngine {
         this.tracks.add(track);
     }
 
+    public void requestStop() {
+        stopRequested = true;
+        pauseRequested = false;
+    }
+
+    public void requestPause() {
+        pauseRequested = true;
+    }
+
+    public void clearPauseRequest() {
+        pauseRequested = false;
+    }
+
+    public boolean isPaused() {
+        return pauseRequested;
+    }
+
+    public boolean isStopRequested() {
+        return stopRequested;
+    }
+
     public void play() {
+
+        if (tracks.isEmpty()) {
+            System.out.println("No tracks to play");
+            return;
+        }
+
         songLength = Collections.max(tracks).getLength();
-        if (songLength != 0) {
-            byte[] mixed = getMixedTracks();
+        if (songLength == 0) {
+            System.out.println("Songlength == 0");
+            return;
+        }
 
-            try (SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info)) {
-                line.open(format);
-                line.start();
+        byte[] mixed = getMixedTracks();
 
-                int totalFrames = mixed.length / FRAME_SIZE;
-                int writtenFrames = 0;
-                int bufferFrames = 1024;
-                byte[] buffer = new byte[bufferFrames * FRAME_SIZE];
+        SourceDataLine line = null;
+        try {
+            line = (SourceDataLine) AudioSystem.getLine(info);
+            line.open(format);
+            line.start();
+
+            int totalFrames = mixed.length / FRAME_SIZE;
+            int writtenFrames = 0;
+            int bufferFrames = 1024;
+            byte[] buffer = new byte[bufferFrames * FRAME_SIZE];
 
 
-                seeker.set(0);
-                long lastUiPushNanos = 0L;
-                long baseFrame = -1L;
+            seeker.set(0);
+            long lastUiPushNanos = 0L;
+            long baseFrame = -1L;
 
-                while (writtenFrames < totalFrames) {
-                    int chunkFrames = Math.min(bufferFrames, totalFrames - writtenFrames);
+            while (writtenFrames < totalFrames && !stopRequested) {
+                if (pauseRequested) {
+                    line.stop();
+                    while (pauseRequested && !stopRequested) {
+                        Thread.sleep(20);
+                    }
+                    if (stopRequested) {
+                        break;
+                    }
+                    line.start();
+                    baseFrame = line.getLongFramePosition();
+                    continue;
+                }
+
+                int chunkFrames = Math.min(bufferFrames, totalFrames - writtenFrames);
 
                     System.arraycopy(
                             mixed,
@@ -108,18 +156,26 @@ public class PlaybackEngine {
                     }
                 }
 
+            if (!stopRequested && !pauseRequested) {
                 line.drain();
                 seeker.set(songLength);
-                line.stop();
                 System.out.println("Fin de reproduccion");
-
-            } catch (LineUnavailableException e) {
-                throw new RuntimeException(e);
+            } else {
+                line.stop();
+                line.flush();
+                System.out.println(pauseRequested ? "Reproducción pausada" : "Reproducción detenida");
             }
-        } else System.out.println("Songlength == 0");
+
+        } catch (LineUnavailableException | InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (line != null) {
+                line.stop();
+                line.close();
+            }
+            stopRequested = false;
+        }
     }
-
-
 
     private byte[] getMixedTracks() {
         byte[] mixed = new byte[ songLength * NORMALISED_FRAME_RATE ];
@@ -149,12 +205,10 @@ public class PlaybackEngine {
                     }
                 }
 
-
             } catch (UnsupportedAudioFileException | IOException e) {
                 throw new RuntimeException(e);
             }
         }
-
 
         return bufferTrack;
     }

@@ -9,6 +9,7 @@ import javafx.event.EventHandler;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 
 import java.io.IOException;
@@ -67,8 +68,8 @@ public class TrackPane implements Serializable {
 
         controlPane.setOnMousePressed(event -> {
             if (event.getButton() == MouseButton.SECONDARY) {
-                controlPaneContextMenu.show(controlPane, event.getScreenX(), event.getScreenY());
                 event.consume();
+                controlPaneContextMenu.show(controlPane, event.getScreenX(), event.getScreenY());
             } else if (controlPaneContextMenu.isShowing()) {
                 controlPaneContextMenu.hide();
             }
@@ -93,8 +94,8 @@ public class TrackPane implements Serializable {
         timeLinePane.setOnMousePressed(event -> {
             lastMouseX = event.getX();
             if (event.getButton() == MouseButton.SECONDARY) {
-                timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
                 event.consume();
+                timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
             }
         });
     }
