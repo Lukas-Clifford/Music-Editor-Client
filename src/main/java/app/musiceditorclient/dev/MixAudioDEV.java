@@ -1,4 +1,4 @@
-package app.musiceditorclient;
+package app.musiceditorclient.dev;
 
 import javax.sound.sampled.*;
 import java.io.File;

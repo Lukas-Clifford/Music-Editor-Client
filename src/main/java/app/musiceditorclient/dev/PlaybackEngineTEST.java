@@ -1,4 +1,4 @@
-package app.musiceditorclient;
+package app.musiceditorclient.dev;
 
 import app.musiceditorclient.infrastructure.FfmpegInstaller;
 import app.musiceditorclient.models.Clip;

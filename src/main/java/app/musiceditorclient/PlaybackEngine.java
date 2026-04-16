@@ -6,7 +6,9 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 
 import javax.sound.sampled.*;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +43,20 @@ public class PlaybackEngine {
     public PlaybackEngine(List<Track> tracks) {
         this.tracks.addAll(tracks);
         songLength = Collections.max(tracks).getLength();
+    }
+
+    public void clearTracks() {
+        tracks.clear();
+        songLength = 0;
+        seeker.set(0);
+    }
+
+    public void setTracks(List<Track> tracks) {
+        clearTracks();
+        this.tracks.addAll(tracks);
+        if (!this.tracks.isEmpty()) {
+            songLength = Collections.max(this.tracks).getLength();
+        }
     }
 
     public void addTrack(Track track) {
@@ -173,5 +189,24 @@ public class PlaybackEngine {
         buf[idx + 2] = (byte) (val >> 16);
     }
 
+    public void exportToWav(Path outputFile) {
+        songLength = Collections.max(tracks).getLength();
+        if (songLength == 0) {
+            System.out.println("Songlength == 0");
+            return;
+        }
 
+        byte[] mixed = getMixedTracks();
+
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(mixed);
+             AudioInputStream audioInputStream = new AudioInputStream(
+                     bais,
+                     format,
+                     mixed.length / FRAME_SIZE
+             )) {
+            AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, outputFile.toFile());
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+    }
 }

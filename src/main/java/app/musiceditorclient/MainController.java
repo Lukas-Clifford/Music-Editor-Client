@@ -84,21 +84,18 @@ public class MainController {
         try {
             String lastOpenedProject = AppFileUtils.readProperty("LAST_OPENED_PROJECT");
             if (!lastOpenedProject.equals("null")) {
-
-                currentProject = new File(lastOpenedProject).toPath();
-                trackPanes = AppFileUtils.readTrackPanesFromMusicProject(currentProject);
-                tracksTableView.setItems(FXCollections.observableList(trackPanes));
-                trackPanes.forEach(this::configureTrackPane);
-                tracksTableView.refresh();
-
-
-                Platform.runLater(this::notifyProjectLoaded);
-
+                loadProject(Path.of(lastOpenedProject));
             }
         } catch (IOException | ClassNotFoundException e) {
             System.err.println(e.getMessage());
         }
+    }
 
+    private void reloadPlaybackEngine() {
+        pe.clearTracks();
+        for (TrackPane trackPane : trackPanes) {
+            pe.addTrack(trackPane.getTrack());
+        }
     }
 
     private void configureTrackPane(TrackPane trackPane) {
@@ -209,6 +206,8 @@ public class MainController {
         addNewTrack();
         addNewTrack();
 
+        reloadPlaybackEngine();
+
         try {
             createProject();
         } catch (Exception e) {
@@ -272,18 +271,21 @@ public class MainController {
         }
 
         try {
-            currentProject = file.toPath();
-            trackPanes = AppFileUtils.readTrackPanesFromMusicProject(file.toPath());
-            tracksTableView.setItems(FXCollections.observableList(trackPanes));
-            trackPanes.forEach(this::configureTrackPane);
-            tracksTableView.refresh();
-
+            loadProject(file.toPath());
             AppFileUtils.writeProperty("LAST_OPENED_PROJECT", file.getAbsolutePath());
-
             notifyProjectLoaded();
         } catch (IOException | ClassNotFoundException e) {
             System.err.println(e.getMessage());
         }
+    }
+
+    private void loadProject(Path projectPath) throws IOException, ClassNotFoundException {
+        currentProject = projectPath;
+        trackPanes = AppFileUtils.readTrackPanesFromMusicProject(projectPath);
+        tracksTableView.setItems(FXCollections.observableList(trackPanes));
+        trackPanes.forEach(this::configureTrackPane);
+        tracksTableView.refresh();
+        reloadPlaybackEngine();
     }
 
     @FXML
@@ -293,6 +295,36 @@ public class MainController {
         trackPanes.add(newTrack);
         pe.addTrack(newTrack.getTrack());
         tracksTableView.refresh();
+    }
+
+    @FXML
+    public void exportAudio() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar audio");
+        fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("WAV (*.wav)", "*.wav")
+        );
+        fileChooser.setInitialFileName("song.wav");
+
+        if (currentProject != null && currentProject.getParent() != null) {
+            fileChooser.setInitialDirectory(currentProject.getParent().toFile());
+        } else {
+            File projectsDir = AppFileUtils.getProjectsDir().toFile();
+            if (projectsDir.exists()) {
+                fileChooser.setInitialDirectory(projectsDir);
+            }
+        }
+
+        File outputFile = fileChooser.showSaveDialog(tracksTableView.getScene().getWindow());
+        if (outputFile == null) {
+            return;
+        }
+
+        if (!outputFile.getName().toLowerCase().endsWith(".wav")) {
+            outputFile = new File(outputFile.getParentFile(), outputFile.getName() + ".wav");
+        }
+
+        pe.exportToWav(outputFile.toPath());
     }
 
     @FXML
