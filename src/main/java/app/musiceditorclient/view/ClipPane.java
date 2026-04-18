@@ -59,7 +59,7 @@ public class ClipPane extends Pane implements Serializable {
     private void setupContextMenu() {
         contextMenu = new ContextMenu();
 
-        MenuItem moveItem = new MenuItem("Mover");
+        MenuItem moveItem = new MenuItem("Move");
         moveItem.setOnAction(event -> {
             if (onMoveAction != null) {
                 onMoveAction.handle(event);
@@ -67,9 +67,9 @@ public class ClipPane extends Pane implements Serializable {
             }
 
             TextInputDialog dialog = new TextInputDialog(String.valueOf(audioClip.getTimelineMsPositionProperty().get() / 1000.0));
-            dialog.setTitle("Mover clip");
-            dialog.setHeaderText("Introducir segundo destino");
-            dialog.setContentText("Segundo:");
+            dialog.setTitle("Move clip");
+            dialog.setHeaderText("Enter destination second");
+            dialog.setContentText("Second:");
 
             Optional<String> result = dialog.showAndWait();
             result.ifPresent(value -> {
@@ -82,12 +82,12 @@ public class ClipPane extends Pane implements Serializable {
             });
         });
 
-        MenuItem trimItem = new MenuItem("Recortar");
+        MenuItem trimItem = new MenuItem("Trim");
         trimItem.setOnAction(event -> {
             if (onTrimAction != null) onTrimAction.handle(event);
         });
 
-        MenuItem removeItem = new MenuItem("Eliminar");
+        MenuItem removeItem = new MenuItem("Delete");
         removeItem.setOnAction(event -> {
             if (onRemoveAction != null) onRemoveAction.handle(event);
             else if (getParent() instanceof Pane parent) {
@@ -127,6 +127,14 @@ public class ClipPane extends Pane implements Serializable {
 
     public void setClipStartPosition(int milliseconds) {
         audioClip.setTimelineMsPosition(milliseconds);
+    }
+
+    public void setAudioStartMs(int audioStartMs) {
+        audioClip.setAudioStartMs(audioStartMs);
+    }
+
+    public int getAudioStartMs() {
+        return audioClip.getAudioStartMs();
     }
 
     public Clip getAudioClip() {

@@ -59,7 +59,7 @@ public class TrackPane implements Serializable {
     private void setupControlPaneContextMenu() {
         controlPaneContextMenu = new ContextMenu();
 
-        MenuItem deleteItem = new MenuItem("Eliminar");
+        MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(event -> {
             if (onDeleteAction != null) onDeleteAction.handle(event);
         });
@@ -79,12 +79,12 @@ public class TrackPane implements Serializable {
     private void setupTimeLinePaneContextMenu() {
         timeLinePaneContextMenu = new ContextMenu();
 
-        MenuItem addClipItem = new MenuItem("Añadir clip");
+        MenuItem addClipItem = new MenuItem("Add clip");
         addClipItem.setOnAction(event -> {
             if (onAddClipAction != null) onAddClipAction.handle(event);
         });
 
-        MenuItem addReiterativeClipItem = new MenuItem("Añadir clip reiterativo");
+        MenuItem addReiterativeClipItem = new MenuItem("Add recursive clip");
         addReiterativeClipItem.setOnAction(event -> {
             if (onAddReiterativeClipAction != null) onAddReiterativeClipAction.handle(event);
         });
@@ -155,6 +155,10 @@ public class TrackPane implements Serializable {
 
     public Pane getTimeLinePane() {
         return timeLinePane;
+    }
+
+    public List<ClipPane> getClipPanes() {
+        return clipPanes;
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {

@@ -98,7 +98,7 @@ public class PlaybackEngine {
 
         songLength = Collections.max(tracks).getLength();
         if (songLength == 0) {
-            System.out.println("Songlength == 0");
+            System.out.println("Song length == 0");
             return;
         }
 
@@ -190,8 +190,18 @@ public class PlaybackEngine {
         for (Clip clip : track.getClips()) {
             int clipBytes = clip.getLength() * NORMALISED_FRAME_RATE;
             int startByte = clip.getTimelineMsPosition() * NORMALISED_FRAME_RATE;
+            int audioStartByte = clip.getAudioStartMs() * NORMALISED_FRAME_RATE;
 
             try (AudioInputStream ais = AudioSystem.getAudioInputStream(clip.getWavFile())) {
+                long skipped = 0;
+                while (skipped < audioStartByte) {
+                    long step = ais.skip(audioStartByte - skipped);
+                    if (step <= 0) {
+                        break;
+                    }
+                    skipped += step;
+                }
+
                 byte[] buffer = new byte[clipBytes];
                 int read = ais.read(buffer, 0, clipBytes);
 
@@ -252,7 +262,7 @@ public class PlaybackEngine {
 
         songLength = Collections.max(tracks).getLength();
         if (songLength == 0) {
-            System.out.println("Songlength == 0");
+            System.out.println("Song length == 0");
             return;
         }
 

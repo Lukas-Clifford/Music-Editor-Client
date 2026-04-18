@@ -16,12 +16,16 @@ public class Clip implements Comparable<Clip>, Serializable {
     private transient SimpleIntegerProperty timelineMsPosition = new SimpleIntegerProperty(0);
     private int timelineMsPositionValue = 0;
     private int length = 0;
+    private transient SimpleIntegerProperty audioStartMs = new SimpleIntegerProperty(0);
+    private int audioStartMsValue = 0;
 
     public Clip(File wavFile, int timelineStartSample) {
         this.wavFile = wavFile;
         this.timelineMsPositionValue = timelineStartSample;
         this.timelineMsPosition.set(timelineStartSample);
         this.length = FfprobeService.getFileLength(wavFile);
+        this.audioStartMsValue = 0;
+        this.audioStartMs.set(0);
 
         if (FfprobeService.getFileSampleRate(this.wavFile) != 48000) {
             FFmpegService.setSampleRate(this.wavFile);
@@ -88,8 +92,26 @@ public class Clip implements Comparable<Clip>, Serializable {
         return this.timelineMsPosition.get() + this.length;
     }
 
+    public int getAudioStartMs() {
+        return audioStartMs.get();
+    }
+
+    public void setAudioStartMs(int audioStartMs) {
+        this.audioStartMsValue = audioStartMs;
+        this.audioStartMs.set(audioStartMs);
+    }
+
+    public SimpleIntegerProperty getAudioStartMsProperty() {
+        if (audioStartMs == null) {
+            audioStartMs = new SimpleIntegerProperty(audioStartMsValue);
+        }
+        return audioStartMs;
+    }
+
+    @Serial
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         this.timelineMsPosition = new SimpleIntegerProperty(timelineMsPositionValue);
+        this.audioStartMs = new SimpleIntegerProperty(audioStartMsValue);
     }
 }

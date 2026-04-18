@@ -103,9 +103,57 @@ public class MainController {
         trackPane.setOnDeleteAction(event -> removeTrack(trackPane));
         trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
         trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
-        trackPane.clipStartOffsetProperty().bind(clipStartOffset);
         trackPane.bindZoomFactor(zoomFactor);
         trackPane.bindClipStartOffset(clipStartOffset);
+
+        for (var clipPane : trackPane.getClipPanes()) {
+            clipPane.setOnTrimAction(event -> trimClip(clipPane));
+        }
+    }
+
+    private void trimClip(app.musiceditorclient.view.ClipPane clipPane) {
+        TextInputDialog frontDialog = new TextInputDialog("0");
+        frontDialog.setTitle("Trim clip");
+        frontDialog.setHeaderText("Milliseconds to trim from the start");
+        frontDialog.setContentText("Front:");
+
+        Optional<String> frontResult = frontDialog.showAndWait();
+        if (frontResult.isEmpty()) {
+            return;
+        }
+
+        TextInputDialog backDialog = new TextInputDialog("0");
+        backDialog.setTitle("Trim clip");
+        backDialog.setHeaderText("Milliseconds to trim from the end");
+        backDialog.setContentText("Back:");
+
+        Optional<String> backResult = backDialog.showAndWait();
+        if (backResult.isEmpty()) {
+            return;
+        }
+
+        try {
+            int trimFrontMs = Integer.parseInt(frontResult.get().trim());
+            int trimBackMs = Integer.parseInt(backResult.get().trim());
+
+            Clip clip = clipPane.getAudioClip();
+            int oldLength = clip.getLength();
+            int oldAudioStart = clip.getAudioStartMs();
+
+            int newAudioStart = Math.max(0, oldAudioStart + trimFrontMs);
+            int newLength = Math.max(0, oldLength - trimFrontMs - trimBackMs);
+
+            clip.setAudioStartMs(newAudioStart);
+            clip.setTimelineMsPosition(newAudioStart);
+            clip.setLength(newLength);
+            clipPane.setClipNameLabel(clip.getWavFile().getName() + " : " + clip.getLength() + "ms");
+
+
+            reloadPlaybackEngine();
+            tracksTableView.refresh();
+        } catch (NumberFormatException ignored) {
+            // Ignored
+        }
     }
 
     private void removeTrack(TrackPane trackPane) {
@@ -141,8 +189,8 @@ public class MainController {
         stopPlaybackForEdit();
 
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Seleccionar clip");
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos WAV (*.wav)", "*.wav");
+        fileChooser.setTitle("Select clip");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("WAV files (*.wav)", "*.wav");
         fileChooser.getExtensionFilters().add(extFilter);
 
         File samplesDir = resolveSamplesDir();
@@ -170,8 +218,8 @@ public class MainController {
         stopPlaybackForEdit();
 
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Seleccionar clip");
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos WAV (*.wav)", "*.wav");
+        fileChooser.setTitle("Select clip");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("WAV files (*.wav)", "*.wav");
         fileChooser.getExtensionFilters().add(extFilter);
 
         File samplesDir = resolveSamplesDir();
@@ -185,9 +233,9 @@ public class MainController {
         }
 
         TextInputDialog secondsDialog = new TextInputDialog("1");
-        secondsDialog.setTitle("Añadir clip reiterativo");
-        secondsDialog.setHeaderText("Cada cuántos segundos se repetirá el clip");
-        secondsDialog.setContentText("Segundos:");
+        secondsDialog.setTitle("Add recursive clip");
+        secondsDialog.setHeaderText("How many seconds between each repetition");
+        secondsDialog.setContentText("Seconds:");
 
         Optional<String> secondsResult = secondsDialog.showAndWait();
         if (secondsResult.isEmpty()) {
@@ -195,9 +243,9 @@ public class MainController {
         }
 
         TextInputDialog repetitionsDialog = new TextInputDialog("2");
-        repetitionsDialog.setTitle("Añadir clip reiterativo");
-        repetitionsDialog.setHeaderText("Cuántas repeticiones añadir");
-        repetitionsDialog.setContentText("Repeticiones:");
+        repetitionsDialog.setTitle("Add recursive clip");
+        repetitionsDialog.setHeaderText("How many repetitions to add");
+        repetitionsDialog.setContentText("Repetitions:");
 
         Optional<String> repetitionsResult = repetitionsDialog.showAndWait();
         if (repetitionsResult.isEmpty()) {
@@ -227,7 +275,7 @@ public class MainController {
     }
 
     private void setupTrackHeaderContextMenu() {
-        MenuItem addTrackItem = new MenuItem("Añadir track");
+        MenuItem addTrackItem = new MenuItem("Add track");
         addTrackItem.setOnAction(event -> addNewTrack());
 
         addTrackContextMenu.getItems().add(addTrackItem);
@@ -259,10 +307,10 @@ public class MainController {
 
     private void createProject() {
 
-        TextInputDialog repetitionsDialog = new TextInputDialog("Proyecto");
-        repetitionsDialog.setTitle("Crear nuevo proyecto");
-        repetitionsDialog.setHeaderText("Nombre del proyecto");
-        repetitionsDialog.setContentText("Nombre: ");
+        TextInputDialog repetitionsDialog = new TextInputDialog("Project");
+        repetitionsDialog.setTitle("Create new project");
+        repetitionsDialog.setHeaderText("Project name");
+        repetitionsDialog.setContentText("Name: ");
 
         Optional<String> repetitionsResult = repetitionsDialog.showAndWait();
         if (repetitionsResult.isEmpty()) {
@@ -289,7 +337,7 @@ public class MainController {
             AppFileUtils.writeTrackPanesToMusicProject(currentProject, trackPanes);
             AppFileUtils.writeProperty("LAST_OPENED_PROJECT", currentProject.toAbsolutePath().toString());
 
-            System.out.println("Archivo guardado");
+            System.out.println("File saved");
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
@@ -298,8 +346,8 @@ public class MainController {
     @FXML
     private void openProject() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Seleccionar proyecto");
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Archivos musicproject (*.musicproject)", "*.musicproject");
+        fileChooser.setTitle("Select project");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("musicproject files (*.musicproject)", "*.musicproject");
         fileChooser.getExtensionFilters().add(extFilter);
 
         fileChooser.setInitialDirectory(AppFileUtils.getProjectsDir().toFile());
@@ -331,9 +379,9 @@ public class MainController {
     @FXML
     public void exportAudio() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Exportar audio");
+        fileChooser.setTitle("Export audio");
         fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("WAV (*.wav)", "*.wav")
+                new FileChooser.ExtensionFilter("WAV files (*.wav)", "*.wav")
         );
         fileChooser.setInitialFileName("song.wav");
 
@@ -387,7 +435,7 @@ public class MainController {
     private void pausePlayback() {
         isPlaying = false;
         pe.requestPause();
-        playButton.setText("Reproducir");
+        playButton.setText("Play");
     }
 
     @FXML
