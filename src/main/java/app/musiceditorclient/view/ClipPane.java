@@ -56,6 +56,11 @@ public class ClipPane extends Pane implements Serializable {
         setupContextMenu();
     }
 
+    public void bindZoomFactor(FloatProperty zoomFactor) {
+        this.zoomFactor.bind(zoomFactor);
+        prefWidthProperty().bind(this.zoomFactor.multiply(audioClip.getLength()));
+    }
+
     private void setupContextMenu() {
         contextMenu = new ContextMenu();
 
@@ -155,9 +160,5 @@ public class ClipPane extends Pane implements Serializable {
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
-    }
-
-    public void bindZoomFactor(FloatProperty zoomFactor) {
-        this.zoomFactor.bind(zoomFactor);
     }
 }

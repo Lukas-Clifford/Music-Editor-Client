@@ -37,7 +37,7 @@ public class MainController {
     public TableColumn<TrackPane, Pane> trackControlPaneColumn;
     public TableColumn<TrackPane, Pane> trackTimelinePaneColum;
 
-    public FloatProperty zoomFactor = new SimpleFloatProperty(1f);
+    public FloatProperty zoomFactor = new SimpleFloatProperty(0.10f);
     public FloatProperty clipStartOffset = new SimpleFloatProperty(0f);
     public TimelineSeekerPane timelineSeekerPane;
     public Button addTrackButton;
@@ -87,7 +87,7 @@ public class MainController {
         trackTimelinePaneColum.setGraphic(timelineSeekerPane);
 
         tracksTableView.setFixedCellSize(100);
-        tracksTableView.fixedCellSizeProperty().bind(zoomFactor.multiply(100));
+        tracksTableView.fixedCellSizeProperty().bind(smoothTrackHeightProperty());
 
         setupTrackHeaderContextMenu();
 
@@ -106,6 +106,12 @@ public class MainController {
             System.err.println(e.getMessage());
         }
 
+    }
+
+    private FloatProperty smoothTrackHeightProperty() {
+        SimpleFloatProperty smoothHeight = new SimpleFloatProperty();
+        smoothHeight.bind(zoomFactor.multiply(60).add(40));
+        return smoothHeight;
     }
 
     private TreeView<String> createSamplesTreeViewForDirectory(File rootDir) {

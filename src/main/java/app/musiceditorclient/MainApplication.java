@@ -27,7 +27,7 @@ public class MainApplication extends Application {
         scene.setOnScroll(event -> {
             if (event.isControlDown()) {
                 controller.zoomFactor.set(
-                        (float) (controller.zoomFactor.get() + (Math.signum(event.getDeltaY()) / 10))
+                        (float) (controller.zoomFactor.get() + (Math.signum(event.getDeltaY()) / 100))
                 );
                 event.consume();
 

@@ -11,6 +11,8 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -39,6 +41,7 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onAddReiterativeClipAction;
     private transient EventHandler<MouseEvent> onMousePressedAction;
     private transient EventHandler<ActionEvent> onTrimAction;
+    private transient Pane rulerPane;
 
     public TrackPane(FloatProperty zoomFactor) {
         this.track = new Track();
@@ -51,12 +54,51 @@ public class TrackPane implements Serializable {
     private void initUi() {
         controlPane = new Pane();
         timeLinePane = new Pane();
+
         timeLinePane.prefHeightProperty().bind(this.zoomFactor.multiply(100));
-        timeLinePane.prefWidthProperty().bind(this.zoomFactor.multiply(36000000));
+        timeLinePane.prefWidthProperty().bind(this.zoomFactor.multiply(600000));
         timeLinePane.setStyle("-fx-background-color:lightgray;");
+
+        rulerPane = new Pane();
+        rulerPane.setMouseTransparent(true);
+        rulerPane.prefWidthProperty().bind(timeLinePane.prefWidthProperty());
+        rulerPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
+        timeLinePane.getChildren().add(rulerPane);
+
         setupTimeLinePaneContextMenu();
         setupControlPaneContextMenu();
         setupTimeLinePaneMouseEvents();
+        setupRulerPainting();
+    }
+
+    private void setupRulerPainting() {
+        if (rulerPane == null) {
+            return;
+        }
+
+        rulerPane.getChildren().clear();
+
+        double msPerStep = 250.0;
+        double visibleSpanMs = 600_000.0;
+
+        for (double ms = 0; ms <= visibleSpanMs; ms += msPerStep) {
+            Line line = new Line();
+
+            line.startXProperty().bind(
+                    zoomFactor.multiply((float) ms).subtract(clipStartOffset)
+            );
+            line.endXProperty().bind(
+                    zoomFactor.multiply((float) ms).subtract(clipStartOffset)
+            );
+
+            boolean isSecond = ((int) ms) % 1000 == 0;
+            line.setStartY(0);
+            line.setEndY(isSecond ? 18 : 10);
+            line.setStroke(isSecond ? Color.DIMGRAY : Color.LIGHTGRAY);
+            line.setStrokeWidth(isSecond ? 1.5 : 1.0);
+
+            rulerPane.getChildren().add(line);
+        }
     }
 
     private void setupControlPaneContextMenu() {
@@ -150,8 +192,11 @@ public class TrackPane implements Serializable {
         clipPanes.add(clipPane);
         track.addClip(clip);
 
-        clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty().subtract(10));
-        clipPane.layoutXProperty().bind(clip.getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset));
+        clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
+
+        clipPane.layoutXProperty().bind(
+                clip.getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset)
+        );
         timeLinePane.getChildren().add(clipPane);
     }
 
@@ -182,6 +227,25 @@ public class TrackPane implements Serializable {
         return clipPanes;
     }
 
+    public void bindClipStartOffset(FloatProperty clipStartOffset) {
+        this.clipStartOffset = clipStartOffset;
+
+        for (ClipPane clipPane : clipPanes) {
+            clipPane.layoutXProperty().unbind();
+            clipPane.layoutXProperty().bind(
+                    clipPane.getAudioClip().getTimelineMsPositionProperty()
+                            .multiply(zoomFactor)
+                            .subtract(this.clipStartOffset)
+            );
+        }
+    }
+
+    public void bindZoomFactor(FloatProperty zoomFactor) {
+        this.zoomFactor.bind(zoomFactor);
+        clipPanes.forEach(clipPane -> clipPane.bindZoomFactor(zoomFactor));
+        setupRulerPainting();
+    }
+
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         this.zoomFactor = new SimpleFloatProperty(1f);
@@ -191,22 +255,17 @@ public class TrackPane implements Serializable {
         for (ClipPane clipPane : clipPanes) {
             clipPane.rebuildAfterDeserialization(zoomFactor);
             registerClipPaneHandlers(clipPane);
-            clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty().subtract(10));
+            clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
+
+            clipPane.layoutXProperty().bind(
+                    clipPane.getAudioClip().getTimelineMsPositionProperty()
+                            .multiply(zoomFactor)
+                            .subtract(clipStartOffset)
+            );
             timeLinePane.getChildren().add(clipPane);
         }
     }
 
-    public void bindZoomFactor(FloatProperty zoomFactor) {
-        this.zoomFactor.bind(zoomFactor);
-        clipPanes.forEach(clipPane -> clipPane.bindZoomFactor(zoomFactor));
-    }
-
-    public void bindClipStartOffset(FloatProperty clipStartOffset) {
-        clipPanes.forEach(clipPane ->
-                clipPane.layoutXProperty().bind(clipPane.getAudioClip().getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset))
-        );
-
-    }
 
     private void setupTimeLinePaneMouseEvents() {
         timeLinePane.setOnMousePressed(event -> {
