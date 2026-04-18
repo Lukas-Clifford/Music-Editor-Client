@@ -2,6 +2,7 @@ package app.musiceditorclient;
 
 import app.musiceditorclient.infrastructure.AppFileUtils;
 import app.musiceditorclient.models.Clip;
+import app.musiceditorclient.view.ClipPane;
 import app.musiceditorclient.view.TimelineSeekerPane;
 import app.musiceditorclient.view.TrackPane;
 import javafx.application.Platform;
@@ -10,10 +11,14 @@ import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
 import javafx.event.Event;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
 import javax.crypto.spec.PSource;
@@ -38,6 +43,10 @@ public class MainController {
     public Button addTrackButton;
     public Button playButton;
     public TreeView<String>  samplesFilesTreeView;
+    public Button addTreeViewButton;
+    public SplitPane samplesSplitPane;
+
+    private TreeView<String> baseSamplesTreeView;
 
     List<TrackPane> trackPanes = new ArrayList<>();
     PlaybackEngine pe;
@@ -48,6 +57,10 @@ public class MainController {
 
     private Consumer<Path> onProjectLoadedListener;
 
+    private File selectedFile;
+
+    private final List<Path> sampleTreeRoots = new ArrayList<>();
+
     public void setOnProjectLoadedListener(Consumer<Path> onProjectLoadedListener) {
         this.onProjectLoadedListener = onProjectLoadedListener;
     }
@@ -57,8 +70,6 @@ public class MainController {
             onProjectLoadedListener.accept(currentProject);
         }
     }
-
-    private File selectedFile;
 
     @FXML
     public void initialize() {
@@ -95,21 +106,84 @@ public class MainController {
             System.err.println(e.getMessage());
         }
 
-        setupSamplesTreeView();
-        setupSelectedSampleBehavior();
     }
 
-    private void setupSamplesTreeView() {
-        File samplesDir = AppFileUtils.resolveSamplesDir();
-        TreeItem<String> rootItem = new TreeItem<>(samplesDir.getPath());
+    private TreeView<String> createSamplesTreeViewForDirectory(File rootDir) {
+        TreeView<String> treeView = new TreeView<>();
+        TreeItem<String> rootItem = new TreeItem<>(rootDir.getPath());
         rootItem.setExpanded(true);
 
-        if (samplesDir.exists() && samplesDir.isDirectory()) {
-            addWavFilesRecursively(rootItem, samplesDir);
+        addWavFilesRecursively(rootItem, rootDir);
+
+        treeView.setRoot(rootItem);
+        treeView.setShowRoot(true);
+        setupSelectedSampleBehavior(treeView);
+        return treeView;
+    }
+
+    private HBox createTreeViewBox(TreeView<String> treeView) {
+        Button removeButton = new Button("-");
+        removeButton.setOnAction(event -> removeTreeView(treeView));
+
+        HBox box = new HBox(treeView, removeButton);
+        box.setSpacing(6);
+        HBox.setHgrow(treeView, javafx.scene.layout.Priority.ALWAYS);
+        treeView.setMaxWidth(Double.MAX_VALUE);
+        return box;
+    }
+
+    @FXML
+    public void addTreeView() {
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Select folder");
+
+        File chosenDir = directoryChooser.showDialog(tracksTableView.getScene().getWindow());
+        if (chosenDir == null || !chosenDir.isDirectory()) {
+            return;
+        }
+        sampleTreeRoots.add(chosenDir.toPath());
+
+        TreeView<String> newTreeView = createSamplesTreeViewForDirectory(chosenDir);
+        samplesSplitPane.getItems().add(samplesSplitPane.getItems().size(), createTreeViewBox(newTreeView));
+        normalizeSamplesSplitPane();
+    }
+
+    @FXML
+    public void removeTreeView(TreeView<String> treeView) {
+        if (treeView == null) {
+            return;
         }
 
-        samplesFilesTreeView.setRoot(rootItem);
-        samplesFilesTreeView.setShowRoot(true);
+        Node parent = treeView.getParent();
+        if (parent instanceof HBox box) {
+            TreeItem<String> root = treeView.getRoot();
+            if (root != null) {
+                sampleTreeRoots.removeIf(rootPath -> rootPath.toString().equals(root.getValue()));
+            }
+
+            samplesSplitPane.getItems().remove(box);
+            normalizeSamplesSplitPane();
+        }
+    }
+
+    private void normalizeSamplesSplitPane() {
+        List<javafx.scene.Node> treeItems = samplesSplitPane.getItems().stream()
+                .filter(node -> node instanceof TreeView<?>)
+                .toList();
+
+        int itemCount = treeItems.size();
+        if (itemCount < 2) {
+            return;
+        }
+
+        double[] dividerPositions = new double[itemCount - 1];
+        double step = 1.0 / itemCount;
+
+        for (int i = 0; i < dividerPositions.length; i++) {
+            dividerPositions[i] = step * (i + 1);
+        }
+
+        samplesSplitPane.setDividerPositions(dividerPositions);
     }
 
     private void addWavFilesRecursively(TreeItem<String> parentItem, File directory) {
@@ -118,7 +192,14 @@ public class MainController {
             return;
         }
 
-        for (File file : files) {
+        List<File> sortedFiles = new ArrayList<>(List.of(files));
+        sortedFiles.sort((a, b) -> {
+            if (a.isDirectory() && !b.isDirectory()) return -1;
+            if (!a.isDirectory() && b.isDirectory()) return 1;
+            return a.getName().compareToIgnoreCase(b.getName());
+        });
+
+        for (File file : sortedFiles) {
             if (file.isDirectory()) {
                 TreeItem<String> dirItem = new TreeItem<>(file.getName());
                 parentItem.getChildren().add(dirItem);
@@ -151,13 +232,17 @@ public class MainController {
         trackPane.bindClipStartOffset(clipStartOffset);
     }
 
-    private void setupSelectedSampleBehavior() {
-        samplesFilesTreeView.setOnMousePressed(event -> {
+    private void setupSelectedSampleBehavior(TreeView<String> treeView) {
+        if (treeView == null) {
+            return;
+        }
+
+        treeView.setOnMousePressed(event -> {
             if (event.getButton() != MouseButton.PRIMARY) {
                 return;
             }
 
-            TreeItem<String> item = samplesFilesTreeView.getSelectionModel().getSelectedItem();
+            TreeItem<String> item = treeView.getSelectionModel().getSelectedItem();
             if (item == null) {
                 selectedFile = null;
                 return;
@@ -168,7 +253,7 @@ public class MainController {
                 return;
             }
 
-            TreeItem<String> root = samplesFilesTreeView.getRoot();
+            TreeItem<String> root = treeView.getRoot();
             if (root == null) {
                 selectedFile = null;
                 return;
@@ -200,7 +285,7 @@ public class MainController {
     }
 
 
-    private void trimClip(app.musiceditorclient.view.ClipPane clipPane) {
+    private void trimClip(ClipPane clipPane) {
         TextInputDialog frontDialog = new TextInputDialog("0");
         frontDialog.setTitle("Trim clip");
         frontDialog.setHeaderText("Milliseconds to trim from the start");
@@ -369,6 +454,7 @@ public class MainController {
     private void createNewProject() {
         trackPanes = new ArrayList<>();
         currentProject = null;
+        sampleTreeRoots.clear();
 
         tracksTableView.setItems(FXCollections.observableList(trackPanes));
         tracksTableView.getItems().clear();
@@ -418,7 +504,7 @@ public class MainController {
                 if (currentProject == null) return;
             }
 
-            AppFileUtils.writeTrackPanesToMusicProject(currentProject, trackPanes);
+            AppFileUtils.writeMusicProject(currentProject, trackPanes, sampleTreeRoots);
             AppFileUtils.writeProperty("LAST_OPENED_PROJECT", currentProject.toAbsolutePath().toString());
 
             System.out.println("File saved");
@@ -452,13 +538,45 @@ public class MainController {
 
     private void loadProject(Path projectPath) throws IOException, ClassNotFoundException {
         currentProject = projectPath;
-        trackPanes = AppFileUtils.readTrackPanesFromMusicProject(projectPath);
+
+        AppFileUtils.MusicProjectData projectData = AppFileUtils.readMusicProject(projectPath);
+        trackPanes = new ArrayList<>(projectData.trackPanes());
+        sampleTreeRoots.clear();
+        sampleTreeRoots.addAll(projectData.sampleTreeRoots());
+
         tracksTableView.setItems(FXCollections.observableList(trackPanes));
         trackPanes.forEach(this::configureTrackPane);
         tracksTableView.refresh();
         reloadPlaybackEngine();
+
+        restoreSampleTreeViews();
     }
 
+    private void restoreSampleTreeViews() {
+        samplesSplitPane.getItems().clear();
+
+        File defaultSamples = AppFileUtils.resolveSamplesDir();
+
+        if (defaultSamples.exists() && defaultSamples.isDirectory()) {
+            baseSamplesTreeView = createSamplesTreeViewForDirectory(defaultSamples);
+            samplesSplitPane.getItems().add(samplesSplitPane.getItems().size(), createTreeViewBox(baseSamplesTreeView));
+        }
+
+        System.out.println(sampleTreeRoots);
+        for (Path rootPath : sampleTreeRoots) {
+            File rootDir = rootPath.toFile();
+            if (!rootDir.exists() || !rootDir.isDirectory()) {
+                continue;
+            }
+
+            TreeView<String> newTreeView = createSamplesTreeViewForDirectory(rootDir);
+            samplesSplitPane.getItems().add(samplesSplitPane.getItems().size(), createTreeViewBox(newTreeView));
+        }
+
+
+
+        normalizeSamplesSplitPane();
+    }
 
     @FXML
     public void exportAudio() {

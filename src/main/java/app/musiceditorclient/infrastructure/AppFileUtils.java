@@ -67,22 +67,28 @@ public class AppFileUtils {
         return projectFile;
     }
 
-    public static void writeTrackPanesToMusicProject(Path file, List<TrackPane> trackPanes) throws IOException {
+    public record MusicProjectData(List<TrackPane> trackPanes, List<Path> sampleTreeRoots) {}
+
+    public static void writeMusicProject(Path file, List<TrackPane> trackPanes, List<Path> sampleTreeRoots) throws IOException {
         Files.createDirectories(file.getParent());
 
         try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(Files.newOutputStream(file))) {
             objectOutputStream.writeObject(new ArrayList<>(trackPanes));
+            objectOutputStream.writeObject(sampleTreeRoots.stream().map(Path::toString).toList());
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static List<TrackPane> readTrackPanesFromMusicProject(Path file) throws IOException, ClassNotFoundException {
+    public static MusicProjectData readMusicProject(Path file) throws IOException, ClassNotFoundException {
         if (Files.notExists(file)) {
-            return new ArrayList<>();
+            return new MusicProjectData(new ArrayList<>(), new ArrayList<>());
         }
 
         try (ObjectInputStream objectInputStream = new ObjectInputStream(Files.newInputStream(file))) {
-            return (List<TrackPane>) objectInputStream.readObject();
+            List<TrackPane> trackPanes = (List<TrackPane>) objectInputStream.readObject();
+            List<String> sampleTreeRootsRaw = (List<String>) objectInputStream.readObject();
+            List<Path> sampleTreeRoots = sampleTreeRootsRaw.stream().map(Paths::get).toList();
+            return new MusicProjectData(trackPanes, sampleTreeRoots);
         }
     }
 
