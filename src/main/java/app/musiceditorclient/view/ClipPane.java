@@ -89,9 +89,8 @@ public class ClipPane extends Pane implements Serializable {
 
         MenuItem removeItem = new MenuItem("Delete");
         removeItem.setOnAction(event -> {
-            if (onRemoveAction != null) onRemoveAction.handle(event);
-            else if (getParent() instanceof Pane parent) {
-                parent.getChildren().remove(this);
+            if (onRemoveAction != null) {
+                onRemoveAction.handle(new javafx.event.ActionEvent(this, null));
             }
         });
 
@@ -147,6 +146,11 @@ public class ClipPane extends Pane implements Serializable {
 
     public void setClipNameLabel(String clipName) {
         this.clipNameLabel.setText(clipName);
+    }
+
+    public void refreshSize() {
+        prefWidthProperty().unbind();
+        prefWidthProperty().bind(zoomFactor.multiply(audioClip.getLength()));
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {

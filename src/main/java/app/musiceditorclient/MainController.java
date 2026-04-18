@@ -12,6 +12,7 @@ import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
 
@@ -36,6 +37,7 @@ public class MainController {
     public TimelineSeekerPane timelineSeekerPane;
     public Button addTrackButton;
     public Button playButton;
+    public TreeView<String>  samplesFilesTreeView;
 
     List<TrackPane> trackPanes = new ArrayList<>();
     PlaybackEngine pe;
@@ -55,6 +57,8 @@ public class MainController {
             onProjectLoadedListener.accept(currentProject);
         }
     }
+
+    private File selectedFile;
 
     @FXML
     public void initialize() {
@@ -90,6 +94,102 @@ public class MainController {
         } catch (IOException | ClassNotFoundException e) {
             System.err.println(e.getMessage());
         }
+
+        setupSamplesTreeView();
+        setupSelectedSampleBehavior();
+    }
+
+    private void setupSamplesTreeView() {
+        File samplesDir = AppFileUtils.resolveSamplesDir();
+        TreeItem<String> rootItem = new TreeItem<>(samplesDir.getPath());
+        rootItem.setExpanded(true);
+
+        if (samplesDir.exists() && samplesDir.isDirectory()) {
+            addWavFilesRecursively(rootItem, samplesDir);
+        }
+
+        samplesFilesTreeView.setRoot(rootItem);
+        samplesFilesTreeView.setShowRoot(true);
+    }
+
+    private void addWavFilesRecursively(TreeItem<String> parentItem, File directory) {
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                TreeItem<String> dirItem = new TreeItem<>(file.getName());
+                parentItem.getChildren().add(dirItem);
+                addWavFilesRecursively(dirItem, file);
+            } else if (file.getName().toLowerCase().endsWith(".wav")) {
+                parentItem.getChildren().add(new TreeItem<>(file.getName()));
+            }
+        }
+    }
+
+    private void configureTrackPane(TrackPane trackPane) {
+        trackPane.setOnDeleteAction(event -> removeTrack(trackPane));
+        trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
+        trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
+        trackPane.setOnTrimAction(event -> {
+            if (event.getSource() instanceof app.musiceditorclient.view.ClipPane clipPane) {
+                trimClip(clipPane);
+            }
+        });
+        trackPane.setOnMousePressedAction(event -> {
+            if (event.getButton() == MouseButton.PRIMARY && selectedFile != null) {
+                stopPlaybackForEdit();
+                int startMs = calculateClipStartMs(trackPane);
+                trackPane.addAudioClip(new Clip(selectedFile, startMs));
+                reloadPlaybackEngine();
+                tracksTableView.refresh();
+            }
+        });
+        trackPane.bindZoomFactor(zoomFactor);
+        trackPane.bindClipStartOffset(clipStartOffset);
+    }
+
+    private void setupSelectedSampleBehavior() {
+        samplesFilesTreeView.setOnMousePressed(event -> {
+            if (event.getButton() != MouseButton.PRIMARY) {
+                return;
+            }
+
+            TreeItem<String> item = samplesFilesTreeView.getSelectionModel().getSelectedItem();
+            if (item == null) {
+                selectedFile = null;
+                return;
+            }
+
+            if (!item.getChildren().isEmpty()) {
+                selectedFile = null;
+                return;
+            }
+
+            TreeItem<String> root = samplesFilesTreeView.getRoot();
+            if (root == null) {
+                selectedFile = null;
+                return;
+            }
+
+            File current = new File(root.getValue());
+            List<String> parents = new ArrayList<>();
+
+            TreeItem<String> cursor = item;
+            while (cursor != null && cursor != root) {
+                parents.add(0, cursor.getValue());
+                cursor = cursor.getParent();
+            }
+
+            for (String segment : parents) {
+                current = new File(current, segment);
+            }
+
+            selectedFile = current.exists() && current.isFile() ? current : null;
+            System.out.println(selectedFile);
+        });
     }
 
     private void reloadPlaybackEngine() {
@@ -99,17 +199,6 @@ public class MainController {
         }
     }
 
-    private void configureTrackPane(TrackPane trackPane) {
-        trackPane.setOnDeleteAction(event -> removeTrack(trackPane));
-        trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
-        trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
-        trackPane.bindZoomFactor(zoomFactor);
-        trackPane.bindClipStartOffset(clipStartOffset);
-
-        for (var clipPane : trackPane.getClipPanes()) {
-            clipPane.setOnTrimAction(event -> trimClip(clipPane));
-        }
-    }
 
     private void trimClip(app.musiceditorclient.view.ClipPane clipPane) {
         TextInputDialog frontDialog = new TextInputDialog("0");
@@ -139,15 +228,17 @@ public class MainController {
             Clip clip = clipPane.getAudioClip();
             int oldLength = clip.getLength();
             int oldAudioStart = clip.getAudioStartMs();
+            int oldTimeLineMsPos = clip.getTimelineMsPosition();
 
             int newAudioStart = Math.max(0, oldAudioStart + trimFrontMs);
             int newLength = Math.max(0, oldLength - trimFrontMs - trimBackMs);
 
             clip.setAudioStartMs(newAudioStart);
-            clip.setTimelineMsPosition(newAudioStart);
+            clip.setTimelineMsPosition(oldTimeLineMsPos + trimFrontMs);
             clip.setLength(newLength);
-            clipPane.setClipNameLabel(clip.getWavFile().getName() + " : " + clip.getLength() + "ms");
 
+            clipPane.setClipNameLabel(clip.getWavFile().getName() + " : " + clip.getLength() + "ms");
+            clipPane.refreshSize();
 
             reloadPlaybackEngine();
             tracksTableView.refresh();
@@ -158,7 +249,7 @@ public class MainController {
 
     private void removeTrack(TrackPane trackPane) {
         trackPanes.remove(trackPane);
-        pe.setTracks(trackPanes.stream().map(TrackPane::getTrack).toList());
+        reloadPlaybackEngine();
         tracksTableView.refresh();
     }
 
@@ -193,8 +284,8 @@ public class MainController {
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("WAV files (*.wav)", "*.wav");
         fileChooser.getExtensionFilters().add(extFilter);
 
-        File samplesDir = resolveSamplesDir();
-        if (samplesDir != null && samplesDir.isDirectory()) {
+        File samplesDir = AppFileUtils.resolveSamplesDir();
+        if (samplesDir.isDirectory()) {
             fileChooser.setInitialDirectory(samplesDir);
         }
 
@@ -211,7 +302,7 @@ public class MainController {
     private int calculateClipStartMs(TrackPane trackPane) {
         float pixelsPerMs = zoomFactor.get();
         float ms = (float) (trackPane.getLastMouseX() / pixelsPerMs);
-        return (int) ms;
+        return Math.max(0, (int) ms);
     }
 
     private void chooseAndAddReiterativeClip(TrackPane trackPane) {
@@ -222,8 +313,8 @@ public class MainController {
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("WAV files (*.wav)", "*.wav");
         fileChooser.getExtensionFilters().add(extFilter);
 
-        File samplesDir = resolveSamplesDir();
-        if (samplesDir != null && samplesDir.isDirectory()) {
+        File samplesDir = AppFileUtils.resolveSamplesDir();
+        if (samplesDir.isDirectory()) {
             fileChooser.setInitialDirectory(samplesDir);
         }
 
@@ -266,13 +357,6 @@ public class MainController {
         }
     }
 
-    private File resolveSamplesDir() {
-        URL samplesUrl = getClass().getResource("/app/musiceditorclient/samples");
-        if (samplesUrl != null) {
-            return new File(samplesUrl.getPath());
-        }
-        return new File(System.getProperty("user.home"));
-    }
 
     private void setupTrackHeaderContextMenu() {
         MenuItem addTrackItem = new MenuItem("Add track");

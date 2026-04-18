@@ -2,15 +2,7 @@ package app.musiceditorclient.infrastructure;
 
 import app.musiceditorclient.view.TrackPane;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,6 +15,7 @@ public class AppFileUtils {
 
     private static final String APP_DIR_NAME = "MusicEditor";
     private static final String PROJECTS_DIR_NAME = "projects";
+    private static final String SAMPLE_PACKS_DIR_NAME = "samples";
     private static final String CONFIG_FILE_NAME = "config.properties";
     private static final String PROJECT_EXTENSION = ".musicproject";
 
@@ -128,4 +121,13 @@ public class AppFileUtils {
             properties.store(outputStream, "MusicEditor configuration");
         }
     }
+
+    public static File resolveSamplesDir() {
+        URL samplesUrl = AppFileUtils.class.getResource("/app/musiceditorclient/" + SAMPLE_PACKS_DIR_NAME);
+        if (samplesUrl != null) {
+            return new File(samplesUrl.getPath());
+        }
+        return new File(System.getProperty("user.home"));
+    }
+
 }

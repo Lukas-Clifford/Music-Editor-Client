@@ -37,6 +37,8 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onDeleteAction;
     private transient EventHandler<ActionEvent> onAddClipAction;
     private transient EventHandler<ActionEvent> onAddReiterativeClipAction;
+    private transient EventHandler<MouseEvent> onMousePressedAction;
+    private transient EventHandler<ActionEvent> onTrimAction;
 
     public TrackPane(FloatProperty zoomFactor) {
         this.track = new Track();
@@ -54,6 +56,7 @@ public class TrackPane implements Serializable {
         timeLinePane.setStyle("-fx-background-color:lightgray;");
         setupTimeLinePaneContextMenu();
         setupControlPaneContextMenu();
+        setupTimeLinePaneMouseEvents();
     }
 
     private void setupControlPaneContextMenu() {
@@ -116,6 +119,14 @@ public class TrackPane implements Serializable {
         this.onAddClipAction = onAddClipAction;
     }
 
+    public void setOnMousePressedAction(EventHandler<MouseEvent> onMousePressedAction) {
+        this.onMousePressedAction = onMousePressedAction;
+    }
+
+    public void setOnTrimAction(EventHandler<ActionEvent> onTrimAction) {
+        this.onTrimAction = onTrimAction;
+    }
+
     public FloatProperty clipStartOffsetProperty() {
         return clipStartOffset;
     }
@@ -134,13 +145,23 @@ public class TrackPane implements Serializable {
 
     public void addAudioClip(Clip clip) {
         ClipPane clipPane = new ClipPane(clip, zoomFactor);
+        registerClipPaneHandlers(clipPane);
+
         clipPanes.add(clipPane);
         track.addClip(clip);
 
-        clipPane.setOnRemoveAction(event -> removeAudioClip(clipPane));
         clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty().subtract(10));
         clipPane.layoutXProperty().bind(clip.getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset));
         timeLinePane.getChildren().add(clipPane);
+    }
+
+    private void registerClipPaneHandlers(ClipPane clipPane) {
+        clipPane.setOnRemoveAction(event -> removeAudioClip(clipPane));
+        clipPane.setOnTrimAction(event -> {
+            if (onTrimAction != null) {
+                onTrimAction.handle(new javafx.event.ActionEvent(clipPane, null));
+            }
+        });
     }
 
     private void removeAudioClip(ClipPane clipPane) {
@@ -169,7 +190,7 @@ public class TrackPane implements Serializable {
 
         for (ClipPane clipPane : clipPanes) {
             clipPane.rebuildAfterDeserialization(zoomFactor);
-            clipPane.setOnRemoveAction(event -> removeAudioClip(clipPane));
+            registerClipPaneHandlers(clipPane);
             clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty().subtract(10));
             timeLinePane.getChildren().add(clipPane);
         }
@@ -185,5 +206,22 @@ public class TrackPane implements Serializable {
                 clipPane.layoutXProperty().bind(clipPane.getAudioClip().getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset))
         );
 
+    }
+
+    private void setupTimeLinePaneMouseEvents() {
+        timeLinePane.setOnMousePressed(event -> {
+            lastMouseX = event.getX();
+
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (onMousePressedAction != null) {
+                    onMousePressedAction.handle(event);
+                }
+            } else if (event.getButton() == MouseButton.SECONDARY) {
+                event.consume();
+                if (timeLinePaneContextMenu != null) {
+                    timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
+                }
+            }
+        });
     }
 }
