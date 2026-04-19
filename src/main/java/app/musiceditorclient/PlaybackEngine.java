@@ -15,19 +15,19 @@ import java.util.List;
 
 public class PlaybackEngine {
 
-    private final int FRAME_RATE = 48;
-    private final int SAMPLE_RATE = 48000;
-    private final int FRAME_SIZE = 6;
+    private final int FRAME_RATE = 44;
+    private final int SAMPLE_RATE = 44100;
+    private final int FRAME_SIZE = 4;
     private final int NORMALISED_FRAME_RATE = FRAME_RATE * FRAME_SIZE;
 
     private final AudioFormat format = new AudioFormat(
-            AudioFormat.Encoding.PCM_SIGNED, // encoding
-            SAMPLE_RATE,                // sampleRate (Hz)
-            24,                              // sampleSizeInBits
-            2,                               // channels (2 = stereo)
-            6,                               // frameSize (bytes por frame)
-            FRAME_RATE*1000,                 // frameRate
-            false                            // bigEndian (false = littleEndian)
+            AudioFormat.Encoding.PCM_SIGNED,
+            SAMPLE_RATE,
+            16,
+            2,
+            4,
+            FRAME_RATE * 1000,
+            false
     );
 
     private final DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
@@ -39,6 +39,7 @@ public class PlaybackEngine {
 
     private volatile boolean stopRequested = false;
     private volatile boolean pauseRequested = false;
+    private volatile int pausedFrame = 0;
 
     public PlaybackEngine() {}
 
@@ -82,6 +83,14 @@ public class PlaybackEngine {
         pauseRequested = false;
     }
 
+    public int getPausedFrame() {
+        return pausedFrame;
+    }
+
+    public void setPausedFrame(int pausedFrame) {
+        this.pausedFrame = Math.max(0, pausedFrame);
+    }
+
     public boolean isPaused() {
         return pauseRequested;
     }
@@ -114,9 +123,11 @@ public class PlaybackEngine {
             int bufferFrames = 1024;
             byte[] buffer = new byte[bufferFrames * FRAME_SIZE];
 
+            int startFrame = Math.min(pausedFrame, totalFrames);
+
             while (!stopRequested) {
-                int writtenFrames = 0;
-                seeker.set(0);
+                int writtenFrames = startFrame;
+                seeker.set((int) Math.max(0L, startFrame / FRAME_RATE));
                 long lastUiPushNanos = 0L;
                 long baseFrame = -1L;
 
@@ -133,6 +144,7 @@ public class PlaybackEngine {
 
                     line.write(buffer, 0, chunkFrames * FRAME_SIZE);
                     writtenFrames += chunkFrames;
+                    pausedFrame = writtenFrames;
 
                     long now = System.nanoTime();
                     if (now - lastUiPushNanos >= 10_000_000L || writtenFrames >= totalFrames) {
@@ -140,7 +152,7 @@ public class PlaybackEngine {
                         if (baseFrame < 0L) {
                             baseFrame = currentFrame;
                         }
-                        int ms = (int) Math.max(0L, (currentFrame - baseFrame) / FRAME_RATE);
+                        int ms = (int) Math.max(0L, (currentFrame - baseFrame + startFrame) / FRAME_RATE);
                         seeker.set(ms);
                         lastUiPushNanos = now;
                     }
@@ -155,12 +167,15 @@ public class PlaybackEngine {
                         break;
                     }
                     line.start();
+                    startFrame = pausedFrame;
                 } else if (!stopRequested) {
                     line.drain();
                     seeker.set(songLength);
+                    pausedFrame = 0;
                     line.stop();
                     line.flush();
                     line.start();
+                    startFrame = 0;
                 }
             }
 
@@ -176,10 +191,10 @@ public class PlaybackEngine {
     }
 
     private byte[] getMixedTracks() {
-        byte[] mixed = new byte[ songLength * NORMALISED_FRAME_RATE ];
+        byte[] mixed = new byte[songLength * NORMALISED_FRAME_RATE];
 
         System.out.println(tracks);
-        for (Track track:tracks) mixPCM24Stereo(mixed, getTrackInPCM(track), mixed);
+        for (Track track:tracks) mixPCM16Stereo(mixed, getTrackInPCM(track), mixed);
 
         return mixed;
     }
@@ -225,34 +240,31 @@ public class PlaybackEngine {
         return bufferTrack;
     }
 
-    private static void mixPCM24Stereo(byte[] in1, byte[] in2, byte[] out) {
-        // 24-bit stereo: 6 bytes por frame (L=3, R=3).
-        for (int i = 0; i < out.length; i += 6) {
-            int l1 = pcm24ToIntLE(in1, i);
-            int l2 = pcm24ToIntLE(in2, i);
+    private static void mixPCM16Stereo(byte[] in1, byte[] in2, byte[] out) {
+        for (int i = 0; i < out.length; i += 4) {
+            int l1 = pcm16ToIntLE(in1, i);
+            int l2 = pcm16ToIntLE(in2, i);
             int mixL = (l1 + l2) / 2;
-            mixL = Math.max(-8388608, Math.min(mixL, 8388607));
-            intToPCM24LE(mixL, out, i);
+            mixL = Math.max(Short.MIN_VALUE, Math.min(mixL, Short.MAX_VALUE));
+            intToPCM16LE(mixL, out, i);
 
-            int r1 = pcm24ToIntLE(in1, i + 3);
-            int r2 = pcm24ToIntLE(in2, i + 3);
+            int r1 = pcm16ToIntLE(in1, i + 2);
+            int r2 = pcm16ToIntLE(in2, i + 2);
             int mixR = (r1 + r2) / 2;
-            mixR = Math.max(-8388608, Math.min(mixR, 8388607));
-            intToPCM24LE(mixR, out, i + 3);
+            mixR = Math.max(Short.MIN_VALUE, Math.min(mixR, Short.MAX_VALUE));
+            intToPCM16LE(mixR, out, i + 2);
         }
     }
 
-    private static int pcm24ToIntLE(byte[] buf, int idx) {
-        int b1 = buf[idx] & 0xFF;
-        int b2 = buf[idx + 1] & 0xFF;
-        int b3 = buf[idx + 2];
-        return (b3 << 16) | (b2 << 8) | b1;
+    private static int pcm16ToIntLE(byte[] buf, int idx) {
+        int lo = buf[idx] & 0xFF;
+        int hi = buf[idx + 1];
+        return (hi << 8) | lo;
     }
 
-    private static void intToPCM24LE(int val, byte[] buf, int idx) {
-        buf[idx]     = (byte) (val);
+    private static void intToPCM16LE(int val, byte[] buf, int idx) {
+        buf[idx] = (byte) (val);
         buf[idx + 1] = (byte) (val >> 8);
-        buf[idx + 2] = (byte) (val >> 16);
     }
 
     public void exportToWav(Path outputFile) {

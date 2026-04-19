@@ -27,7 +27,7 @@ public class Clip implements Comparable<Clip>, Serializable {
         this.audioStartMsValue = 0;
         this.audioStartMs.set(0);
 
-        if (FfprobeService.getFileSampleRate(this.wavFile) != 48000) {
+        if (FfprobeService.getFileSampleRate(this.wavFile) != 44100) {
             FFmpegService.setSampleRate(this.wavFile);
         }
     }

@@ -142,6 +142,7 @@ public class MainController {
     public void addTreeView() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Select folder");
+        directoryChooser.setInitialDirectory(AppFileUtils.resolveSamplesDir());
 
         File chosenDir = directoryChooser.showDialog(tracksTableView.getScene().getWindow());
         if (chosenDir == null || !chosenDir.isDirectory()) {
@@ -221,7 +222,7 @@ public class MainController {
         trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
         trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
         trackPane.setOnTrimAction(event -> {
-            if (event.getSource() instanceof app.musiceditorclient.view.ClipPane clipPane) {
+            if (event.getSource() instanceof ClipPane clipPane) {
                 trimClip(clipPane);
             }
         });
@@ -351,6 +352,7 @@ public class MainController {
         isPlaying = false;
         playbackRunning = false;
         playButton.setText("▶");
+        reloadPlaybackEngine();
     }
 
     private void addTrackAndReloadEngine(TrackPane newTrack) {
@@ -641,9 +643,30 @@ public class MainController {
     }
 
     private void pausePlayback() {
-        isPlaying = false;
+        pe.setPausedFrame(pe.seeker.get() * 44);
         pe.requestPause();
-        playButton.setText("Play");
+        playButton.setText("▶");
+    }
+
+    @FXML
+    public void goToStart() {
+        stopPlaybackForEdit();
+        pe.requestStop();
+        pe.clearPauseRequest();
+        pe.setPausedFrame(0);
+        pe.seeker.set(0);
+
+        if (playbackThread != null && playbackThread.isAlive()) {
+            try {
+                playbackThread.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        isPlaying = false;
+        playbackRunning = false;
+        playButton.setText("▶");
     }
 
     @FXML
@@ -665,5 +688,24 @@ public class MainController {
         }
 
         startPlayback();
+    }
+
+
+    @FXML
+    public void importSamplePack() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select pack");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("sample packs (*.zip)", "*.zip");
+        fileChooser.getExtensionFilters().add(extFilter);
+
+        fileChooser.setInitialDirectory(AppFileUtils.getProjectsDir().toFile());
+
+        File file = fileChooser.showOpenDialog(tracksTableView.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+
+        AppFileUtils.extractZipIntoSamplesDir(file);
+        restoreSampleTreeViews();
     }
 }

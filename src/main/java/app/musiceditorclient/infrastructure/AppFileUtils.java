@@ -10,6 +10,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class AppFileUtils {
 
@@ -134,6 +136,41 @@ public class AppFileUtils {
             return new File(samplesUrl.getPath());
         }
         return new File(System.getProperty("user.home"));
+    }
+
+    public static void extractZipIntoSamplesDir(File pack) {
+        if (pack == null || !pack.exists() || !pack.getName().toLowerCase().endsWith(".zip")) {
+            return;
+        }
+
+        File samplesDir = resolveSamplesDir();
+        if (!samplesDir.exists() && !samplesDir.mkdirs()) {
+            return;
+        }
+
+        try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(pack))) {
+            ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                File outFile = new File(samplesDir, entry.getName());
+
+                if (entry.isDirectory()) {
+                    outFile.mkdirs();
+                } else {
+                    File parent = outFile.getParentFile();
+                    if (parent != null && !parent.exists()) {
+                        parent.mkdirs();
+                    }
+
+                    try (OutputStream outputStream = new FileOutputStream(outFile)) {
+                        zipInputStream.transferTo(outputStream);
+                    }
+                }
+
+                zipInputStream.closeEntry();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -5,7 +5,6 @@ import app.musiceditorclient.infrastructure.FfmpegInstaller;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.List;
 
 public class FfprobeService {
@@ -48,7 +47,7 @@ public class FfprobeService {
 
 
     /**
-     * Returns sample rate from audio file in Hz (project standard: 48000)
+     * Returns sample rate from audio file in Hz (project standard: 44100)
      * @param filePath - Absolute path
      * @return Sample rate in Hz
      */
