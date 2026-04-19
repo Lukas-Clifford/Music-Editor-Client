@@ -2,7 +2,9 @@ package app.musiceditorclient.view;
 
 import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.models.Track;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -41,7 +43,9 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onAddReiterativeClipAction;
     private transient EventHandler<MouseEvent> onMousePressedAction;
     private transient EventHandler<ActionEvent> onTrimAction;
+    private transient EventHandler<ActionEvent> onClipSelection;
     private transient Pane rulerPane;
+    private transient BooleanProperty selectionToolEnabledProperty = new SimpleBooleanProperty(false);
 
     public TrackPane(FloatProperty zoomFactor) {
         this.track = new Track();
@@ -55,14 +59,18 @@ public class TrackPane implements Serializable {
         controlPane = new Pane();
         timeLinePane = new Pane();
 
-        timeLinePane.prefHeightProperty().bind(this.zoomFactor.multiply(100));
-        timeLinePane.prefWidthProperty().bind(this.zoomFactor.multiply(600000));
+        if (zoomFactor != null) {
+            timeLinePane.prefHeightProperty().bind(zoomFactor.multiply(100));
+            timeLinePane.prefWidthProperty().bind(zoomFactor.multiply(600000));
+        }
         timeLinePane.setStyle("-fx-background-color:lightgray;");
 
         rulerPane = new Pane();
         rulerPane.setMouseTransparent(true);
-        rulerPane.prefWidthProperty().bind(timeLinePane.prefWidthProperty());
-        rulerPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
+        if (timeLinePane != null) {
+            rulerPane.prefWidthProperty().bind(timeLinePane.prefWidthProperty());
+            rulerPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
+        }
         timeLinePane.getChildren().add(rulerPane);
 
         setupTimeLinePaneContextMenu();
@@ -72,7 +80,7 @@ public class TrackPane implements Serializable {
     }
 
     private void setupRulerPainting() {
-        if (rulerPane == null) {
+        if (rulerPane == null || zoomFactor == null || clipStartOffset == null) {
             return;
         }
 
@@ -84,12 +92,8 @@ public class TrackPane implements Serializable {
         for (double ms = 0; ms <= visibleSpanMs; ms += msPerStep) {
             Line line = new Line();
 
-            line.startXProperty().bind(
-                    zoomFactor.multiply((float) ms).subtract(clipStartOffset)
-            );
-            line.endXProperty().bind(
-                    zoomFactor.multiply((float) ms).subtract(clipStartOffset)
-            );
+            line.startXProperty().bind(zoomFactor.multiply((float) ms).subtract(clipStartOffset));
+            line.endXProperty().bind(zoomFactor.multiply((float) ms).subtract(clipStartOffset));
 
             boolean isSecond = ((int) ms) % 1000 == 0;
             line.setStartY(0);
@@ -138,8 +142,7 @@ public class TrackPane implements Serializable {
 
         timeLinePane.setOnMousePressed(event -> {
             lastMouseX = event.getX();
-            if (event.getButton() == MouseButton.SECONDARY) {
-                event.consume();
+            if (event.getButton() == MouseButton.SECONDARY && !selectionToolEnabledProperty.get()) {
                 timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
             }
         });
@@ -169,6 +172,13 @@ public class TrackPane implements Serializable {
         this.onTrimAction = onTrimAction;
     }
 
+    public void setOnClipSelection(EventHandler<ActionEvent> onClipSelection) {
+        this.onClipSelection = onClipSelection;
+        for (ClipPane clipPane : clipPanes) {
+            clipPane.setOnSelectionAction(onClipSelection);
+        }
+    }
+
     public FloatProperty clipStartOffsetProperty() {
         return clipStartOffset;
     }
@@ -185,6 +195,26 @@ public class TrackPane implements Serializable {
         return track;
     }
 
+    public void bindSelectionEnabled(BooleanProperty isSelectionToolActiveProperty) {
+        if (isSelectionToolActiveProperty == null) {
+            return;
+        }
+
+        if (this.selectionToolEnabledProperty != null) {
+            this.selectionToolEnabledProperty.bind(isSelectionToolActiveProperty);
+        }
+        for (ClipPane clipPane : clipPanes) {
+            if (clipPane == null) {
+                continue;
+            }
+
+            if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
+                clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
+            }
+            clipPane.setOnSelectionAction(onClipSelection);
+        }
+    }
+
     public void addAudioClip(Clip clip) {
         ClipPane clipPane = new ClipPane(clip, zoomFactor);
         registerClipPaneHandlers(clipPane);
@@ -192,11 +222,22 @@ public class TrackPane implements Serializable {
         clipPanes.add(clipPane);
         track.addClip(clip);
 
-        clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
+        if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
+            clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
+        }
+        clipPane.setOnSelectionAction(onClipSelection);
 
-        clipPane.layoutXProperty().bind(
-                clip.getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset)
-        );
+        if (timeLinePane != null) {
+            clipPane.prefHeightProperty().bind(timeLinePane.heightProperty());
+            clipPane.minHeightProperty().bind(timeLinePane.heightProperty());
+            clipPane.maxHeightProperty().bind(timeLinePane.heightProperty());
+        }
+
+        if (zoomFactor != null && clipStartOffset != null) {
+            clipPane.layoutXProperty().bind(
+                    clip.getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset)
+            );
+        }
         timeLinePane.getChildren().add(clipPane);
     }
 
@@ -207,7 +248,12 @@ public class TrackPane implements Serializable {
                 onTrimAction.handle(new javafx.event.ActionEvent(clipPane, null));
             }
         });
+        clipPane.setOnSelectionAction(onClipSelection);
+        if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
+            clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
+        }
     }
+
 
     private void removeAudioClip(ClipPane clipPane) {
         track.removeClip(clipPane.getAudioClip());
@@ -231,6 +277,9 @@ public class TrackPane implements Serializable {
         this.clipStartOffset = clipStartOffset;
 
         for (ClipPane clipPane : clipPanes) {
+            if (clipPane == null || clipPane.getAudioClip() == null || zoomFactor == null || this.clipStartOffset == null) {
+                continue;
+            }
             clipPane.layoutXProperty().unbind();
             clipPane.layoutXProperty().bind(
                     clipPane.getAudioClip().getTimelineMsPositionProperty()
@@ -242,7 +291,11 @@ public class TrackPane implements Serializable {
 
     public void bindZoomFactor(FloatProperty zoomFactor) {
         this.zoomFactor.bind(zoomFactor);
-        clipPanes.forEach(clipPane -> clipPane.bindZoomFactor(zoomFactor));
+        clipPanes.forEach(clipPane -> {
+            if (clipPane != null) {
+                clipPane.bindZoomFactor(zoomFactor);
+            }
+        });
         setupRulerPainting();
     }
 
@@ -250,18 +303,29 @@ public class TrackPane implements Serializable {
         in.defaultReadObject();
         this.zoomFactor = new SimpleFloatProperty(1f);
         this.clipStartOffset = new SimpleFloatProperty(0f);
+        this.selectionToolEnabledProperty = new SimpleBooleanProperty(false);
         initUi();
 
         for (ClipPane clipPane : clipPanes) {
+            if (clipPane == null) {
+                continue;
+            }
             clipPane.rebuildAfterDeserialization(zoomFactor);
             registerClipPaneHandlers(clipPane);
-            clipPane.prefHeightProperty().bind(timeLinePane.prefHeightProperty());
 
-            clipPane.layoutXProperty().bind(
-                    clipPane.getAudioClip().getTimelineMsPositionProperty()
-                            .multiply(zoomFactor)
-                            .subtract(clipStartOffset)
-            );
+            if (timeLinePane != null) {
+                clipPane.prefHeightProperty().bind(timeLinePane.heightProperty());
+                clipPane.minHeightProperty().bind(timeLinePane.heightProperty());
+                clipPane.maxHeightProperty().bind(timeLinePane.heightProperty());
+            }
+
+            if (clipPane.getAudioClip() != null && zoomFactor != null && clipStartOffset != null) {
+                clipPane.layoutXProperty().bind(
+                        clipPane.getAudioClip().getTimelineMsPositionProperty()
+                                .multiply(zoomFactor)
+                                .subtract(clipStartOffset)
+                );
+            }
             timeLinePane.getChildren().add(clipPane);
         }
     }

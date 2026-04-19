@@ -1,7 +1,9 @@
 package app.musiceditorclient.view;
 
 import app.musiceditorclient.models.Clip;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -34,6 +36,10 @@ public class ClipPane extends Pane implements Serializable {
     private transient EventHandler<ActionEvent> onTrimAction;
     private transient EventHandler<ActionEvent> onRemoveAction;
 
+    private transient BooleanProperty selectionEnabledProperty = new SimpleBooleanProperty(false);
+    private transient EventHandler<ActionEvent> onSelectionAction;
+    private boolean selected = false;
+
     public ClipPane(Clip clip, FloatProperty zoomFactor) {
         this.audioClip = clip;
         this.zoomFactor = new SimpleFloatProperty(1f);
@@ -49,16 +55,20 @@ public class ClipPane extends Pane implements Serializable {
             if (clipNameLabel.getWidth() > getWidth()) setClipNameLabel("");
         });
 
-        prefWidthProperty().bind(zoomFactor.multiply(audioClip.getLength()));
-        layoutXProperty().bind(audioClip.getTimelineMsPositionProperty().multiply(zoomFactor));
+        if (zoomFactor != null) {
+            prefWidthProperty().bind(zoomFactor.multiply(audioClip.getLength()));
+            layoutXProperty().bind(audioClip.getTimelineMsPositionProperty().multiply(zoomFactor));
+        }
 
-        setStyle("-fx-background-color:aquamarine;");
+        updateSelectionStyle();
         setupContextMenu();
     }
 
     public void bindZoomFactor(FloatProperty zoomFactor) {
         this.zoomFactor.bind(zoomFactor);
-        prefWidthProperty().bind(this.zoomFactor.multiply(audioClip.getLength()));
+        if (this.zoomFactor != null && audioClip != null) {
+            prefWidthProperty().bind(this.zoomFactor.multiply(audioClip.getLength()));
+        }
     }
 
     private void setupContextMenu() {
@@ -102,7 +112,11 @@ public class ClipPane extends Pane implements Serializable {
         contextMenu.getItems().addAll(moveItem, trimItem, removeItem);
 
         setOnMousePressed(event -> {
-            if (event.getButton() == MouseButton.SECONDARY) {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (selectionEnabledProperty != null && selectionEnabledProperty.get() && onSelectionAction != null) {
+                    onSelectionAction.handle(new javafx.event.ActionEvent(this, null));
+                }
+            } else if (event.getButton() == MouseButton.SECONDARY && !selectionEnabledProperty.get()) {
                 event.consume();
                 contextMenu.show(this, event.getScreenX(), event.getScreenY());
             } else if (contextMenu.isShowing()) {
@@ -113,7 +127,9 @@ public class ClipPane extends Pane implements Serializable {
 
     public void rebuildAfterDeserialization(FloatProperty zoomFactor) {
         this.zoomFactor = new SimpleFloatProperty(1f);
-        this.zoomFactor.bind(zoomFactor);
+        if (zoomFactor != null) {
+            this.zoomFactor.bind(zoomFactor);
+        }
         initUi();
     }
 
@@ -151,6 +167,39 @@ public class ClipPane extends Pane implements Serializable {
 
     public void setClipNameLabel(String clipName) {
         this.clipNameLabel.setText(clipName);
+    }
+
+    public void setOnSelectionAction(EventHandler<ActionEvent> onSelectionAction) {
+        this.onSelectionAction = onSelectionAction;
+    }
+
+
+    public BooleanProperty selectionEnabledPropertyProperty() {
+        if (selectionEnabledProperty == null) {
+            selectionEnabledProperty = new SimpleBooleanProperty(false);
+        }
+        return selectionEnabledProperty;
+    }
+
+    public void setSelectionEnabledProperty(BooleanProperty selectionEnabledProperty) {
+        this.selectionEnabledProperty = selectionEnabledProperty;
+    }
+
+    public boolean isSelectionEnabled() {
+        return selectionEnabledProperty != null && selectionEnabledProperty.get();
+    }
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+        updateSelectionStyle();
+    }
+
+    private void updateSelectionStyle() {
+        setStyle(selected ? "-fx-background-color:cornflowerblue;" : "-fx-background-color:aquamarine;");
     }
 
     public void refreshSize() {

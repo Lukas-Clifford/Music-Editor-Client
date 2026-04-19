@@ -47,6 +47,12 @@ public class MainApplication extends Application {
             if (event.isShiftDown() && event.getCode() == KeyCode.ESCAPE)
                 stage.close();
 
+            if (event.getCode() == KeyCode.CONTROL)
+                controller.enableSelection();
+
+            if (event.isShiftDown() && event.isControlDown() && event.getCode() == KeyCode.A)
+                controller.clearSelection();
+
         });
 
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
@@ -54,6 +60,11 @@ public class MainApplication extends Application {
                 controller.play();
                 event.consume();
             }
+        });
+
+        scene.setOnKeyReleased(event -> {
+            if (event.getCode() == KeyCode.CONTROL)
+                controller.disableSelection();
         });
 
         stage.show();

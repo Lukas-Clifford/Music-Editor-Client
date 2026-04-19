@@ -6,7 +6,9 @@ import app.musiceditorclient.view.ClipPane;
 import app.musiceditorclient.view.TimelineSeekerPane;
 import app.musiceditorclient.view.TrackPane;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
 import javafx.event.Event;
@@ -45,6 +47,7 @@ public class MainController {
     public TreeView<String>  samplesFilesTreeView;
     public Button addTreeViewButton;
     public SplitPane samplesSplitPane;
+    public Button selectionToolButton;
 
     private TreeView<String> baseSamplesTreeView;
 
@@ -60,6 +63,14 @@ public class MainController {
     private File selectedFile;
 
     private final List<Path> sampleTreeRoots = new ArrayList<>();
+
+    private final BooleanProperty isSelectionToolActiveProperty = new SimpleBooleanProperty(false);
+    private final List<ClipPane> selectedClips = new ArrayList<>();
+
+    private volatile boolean playbackRunning = false;
+    private Thread playbackThread;
+
+
 
     public void setOnProjectLoadedListener(Consumer<Path> onProjectLoadedListener) {
         this.onProjectLoadedListener = onProjectLoadedListener;
@@ -226,6 +237,11 @@ public class MainController {
                 trimClip(clipPane);
             }
         });
+        trackPane.setOnClipSelection(event -> {
+            if (event.getSource() instanceof ClipPane clipPane) {
+                toggleClipSelection(clipPane);
+            }
+        });
         trackPane.setOnMousePressedAction(event -> {
             if (event.getButton() == MouseButton.PRIMARY && selectedFile != null) {
                 stopPlaybackForEdit();
@@ -237,6 +253,33 @@ public class MainController {
         });
         trackPane.bindZoomFactor(zoomFactor);
         trackPane.bindClipStartOffset(clipStartOffset);
+        trackPane.bindSelectionEnabled(isSelectionToolActiveProperty);
+    }
+
+    @FXML
+    private void toggleSelectionTool() {
+        isSelectionToolActiveProperty.set(!isSelectionToolActiveProperty.get());
+        if (isSelectionToolActiveProperty.get()) {
+            selectionToolButton.setStyle("-fx-background-color:blue;");
+        } else {
+            selectionToolButton.setStyle("-fx-background-color:transparent;");
+        }
+    }
+
+    private void toggleClipSelection(ClipPane clipPane) {
+        if (clipPane == null) {
+            return;
+        }
+
+        if (clipPane.isSelected()) {
+            clipPane.setSelected(false);
+            selectedClips.remove(clipPane);
+        } else {
+            clipPane.setSelected(true);
+            if (!selectedClips.contains(clipPane)) {
+                selectedClips.add(clipPane);
+            }
+        }
     }
 
     private void setupSelectedSampleBehavior(TreeView<String> treeView) {
@@ -349,7 +392,7 @@ public class MainController {
         if (pe != null) {
             pe.requestStop();
         }
-        isPlaying = false;
+
         playbackRunning = false;
         playButton.setText("▶");
         reloadPlaybackEngine();
@@ -463,6 +506,7 @@ public class MainController {
         trackPanes = new ArrayList<>();
         currentProject = null;
         sampleTreeRoots.clear();
+        selectedClips.clear();
 
         tracksTableView.setItems(FXCollections.observableList(trackPanes));
         tracksTableView.getItems().clear();
@@ -552,6 +596,8 @@ public class MainController {
         sampleTreeRoots.clear();
         sampleTreeRoots.addAll(projectData.sampleTreeRoots());
 
+        selectedClips.clear();
+
         tracksTableView.setItems(FXCollections.observableList(trackPanes));
         trackPanes.forEach(this::configureTrackPane);
         tracksTableView.refresh();
@@ -616,9 +662,6 @@ public class MainController {
         pe.exportToWav(outputFile.toPath());
     }
 
-    private boolean isPlaying = false;
-    private volatile boolean playbackRunning = false;
-    private Thread playbackThread;
 
     private void startPlayback() {
         if (playbackRunning) {
@@ -626,7 +669,7 @@ public class MainController {
         }
 
         playbackRunning = true;
-        isPlaying = true;
+
         playButton.setText("⏸");
 
         playbackThread = new Thread(() -> {
@@ -636,7 +679,7 @@ public class MainController {
                 pe.play();
             } finally {
                 playbackRunning = false;
-                isPlaying = false;
+
                 Platform.runLater(() -> playButton.setText("▶"));
             }
         });
@@ -666,7 +709,7 @@ public class MainController {
             }
         }
 
-        isPlaying = false;
+
         playbackRunning = false;
         playButton.setText("▶");
     }
@@ -683,7 +726,6 @@ public class MainController {
             if (!playbackRunning) {
                 startPlayback();
             } else {
-                isPlaying = true;
                 playButton.setText("⏸");
             }
             return;
@@ -710,4 +752,24 @@ public class MainController {
         AppFileUtils.extractZipIntoSamplesDir(file);
         restoreSampleTreeViews();
     }
+
+
+    @FXML
+    public void clearSelection() {
+        for (ClipPane clipPane : selectedClips) {
+            clipPane.setSelected(false);
+        }
+        selectedClips.clear();
+    }
+
+    public void enableSelection() {
+        isSelectionToolActiveProperty.set(true);
+        selectionToolButton.setStyle("-fx-background-color:blue;");
+    }
+
+    public void disableSelection() {
+        isSelectionToolActiveProperty.set(false);
+        selectionToolButton.setStyle("-fx-background-color:transparent;");
+    }
+
 }
