@@ -93,7 +93,7 @@ public class MainController {
 
         pe = new PlaybackEngine();
         timelineSeekerPane.seekerPosition.bind(pe.seeker);
-
+        timelineSeekerPane.bindSongLengthProperty(pe.songLengthProperty);
         addNewTrack();
         addNewTrack();
 
@@ -631,6 +631,8 @@ public class MainController {
 
         playbackThread = new Thread(() -> {
             try {
+                pe.setPausedFrame((int) Math.round(pe.seeker.get() * 44.1));
+                pe.clearPauseRequest();
                 pe.play();
             } finally {
                 playbackRunning = false;

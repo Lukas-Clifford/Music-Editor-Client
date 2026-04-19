@@ -36,6 +36,7 @@ public class PlaybackEngine {
     private int songLength = 0;
 
     public SimpleIntegerProperty seeker = new SimpleIntegerProperty(0);
+    public SimpleIntegerProperty songLengthProperty = new SimpleIntegerProperty(1);
 
     private volatile boolean stopRequested = false;
     private volatile boolean pauseRequested = false;
@@ -52,6 +53,7 @@ public class PlaybackEngine {
         tracks.clear();
         songLength = 0;
         seeker.set(0);
+        songLengthProperty.set(1);
     }
 
     public void setTracks(List<Track> tracks) {
@@ -59,11 +61,14 @@ public class PlaybackEngine {
         this.tracks.addAll(tracks);
         if (!this.tracks.isEmpty()) {
             songLength = Collections.max(this.tracks).getLength();
+            songLengthProperty.set(songLength);
         }
     }
 
     public void addTrack(Track track) {
         this.tracks.add(track);
+        songLength = Math.max(1,Collections.max(this.tracks).getLength());
+        songLengthProperty.set(songLength);
     }
 
     public void requestStop() {
@@ -106,6 +111,7 @@ public class PlaybackEngine {
         }
 
         songLength = Collections.max(tracks).getLength();
+        songLengthProperty.set(songLength);
         if (songLength == 0) {
             System.out.println("Song length == 0");
             return;
@@ -127,9 +133,7 @@ public class PlaybackEngine {
 
             while (!stopRequested) {
                 int writtenFrames = startFrame;
-                seeker.set((int) Math.max(0L, startFrame / FRAME_RATE));
-                long lastUiPushNanos = 0L;
-                long baseFrame = -1L;
+                seeker.set(startFrame / FRAME_RATE);
 
                 while (writtenFrames < totalFrames && !stopRequested && !pauseRequested) {
                     int chunkFrames = Math.min(bufferFrames, totalFrames - writtenFrames);
@@ -146,16 +150,8 @@ public class PlaybackEngine {
                     writtenFrames += chunkFrames;
                     pausedFrame = writtenFrames;
 
-                    long now = System.nanoTime();
-                    if (now - lastUiPushNanos >= 10_000_000L || writtenFrames >= totalFrames) {
-                        long currentFrame = line.getLongFramePosition();
-                        if (baseFrame < 0L) {
-                            baseFrame = currentFrame;
-                        }
-                        int ms = (int) Math.max(0L, (currentFrame - baseFrame + startFrame) / FRAME_RATE);
-                        seeker.set(ms);
-                        lastUiPushNanos = now;
-                    }
+                    int currentMs = (writtenFrames - startFrame) / FRAME_RATE;
+                    seeker.set(Math.max(0, currentMs));
                 }
 
                 if (pauseRequested) {
@@ -170,7 +166,7 @@ public class PlaybackEngine {
                     startFrame = pausedFrame;
                 } else if (!stopRequested) {
                     line.drain();
-                    seeker.set(songLength);
+                    seeker.set(0);
                     pausedFrame = 0;
                     line.stop();
                     line.flush();
@@ -273,6 +269,7 @@ public class PlaybackEngine {
         }
 
         songLength = Collections.max(tracks).getLength();
+        songLengthProperty.set(songLength);
         if (songLength == 0) {
             System.out.println("Song length == 0");
             return;
@@ -290,5 +287,9 @@ public class PlaybackEngine {
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
+    }
+
+    public void setSeekerPosition(int value) {
+        seeker.set(Math.max(0, value));
     }
 }
