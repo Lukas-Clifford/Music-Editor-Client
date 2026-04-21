@@ -11,22 +11,21 @@ import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.fxml.FXML;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
-import javax.crypto.spec.PSource;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +54,8 @@ public class MainController {
     PlaybackEngine pe;
 
     private final ContextMenu addTrackContextMenu = new ContextMenu();
+    private final ContextMenu selectionContextMenu = new ContextMenu();
+
 
     private Path currentProject;
 
@@ -66,6 +67,8 @@ public class MainController {
 
     private final BooleanProperty isSelectionToolActiveProperty = new SimpleBooleanProperty(false);
     private final List<ClipPane> selectedClips = new ArrayList<>();
+
+    private final List<ClipPane> copiedClips = new ArrayList<>();
 
     private volatile boolean playbackRunning = false;
     private Thread playbackThread;
@@ -101,6 +104,7 @@ public class MainController {
         tracksTableView.fixedCellSizeProperty().bind(smoothTrackHeightProperty());
 
         setupTrackHeaderContextMenu();
+        setupSelectionContextMenu();
 
         pe = new PlaybackEngine();
         timelineSeekerPane.seekerPosition.bind(pe.seeker);
@@ -232,6 +236,7 @@ public class MainController {
         trackPane.setOnDeleteAction(event -> removeTrack(trackPane));
         trackPane.setOnAddClipAction(event -> chooseAndAddClip(trackPane));
         trackPane.setOnAddReiterativeClipAction(event -> chooseAndAddReiterativeClip(trackPane));
+        trackPane.setOnPasteCopiedClips(event -> pasteClipPanes(copiedClips, trackPane));
         trackPane.setOnTrimAction(event -> {
             if (event.getSource() instanceof ClipPane clipPane) {
                 trimClip(clipPane);
@@ -242,6 +247,9 @@ public class MainController {
                 toggleClipSelection(clipPane);
             }
         });
+
+        trackPane.setOnRightClickSelection(this::showSelectionContextMenu);
+
         trackPane.setOnMousePressedAction(event -> {
             if (event.getButton() == MouseButton.PRIMARY && selectedFile != null) {
                 stopPlaybackForEdit();
@@ -255,6 +263,155 @@ public class MainController {
         trackPane.bindClipStartOffset(clipStartOffset);
         trackPane.bindSelectionEnabled(isSelectionToolActiveProperty);
     }
+
+    private void showSelectionContextMenu(MouseEvent event) {
+
+        if (!selectionContextMenu.isShowing())
+            selectionContextMenu.show(tracksTableView.getParent(), event.getScreenX(), event.getScreenY());
+        else
+            selectionContextMenu.hide();
+
+
+
+    }
+
+    private void setupSelectionContextMenu() {
+
+        MenuItem moveSelectedClipsMenuItem = new MenuItem("Move");
+        moveSelectedClipsMenuItem.setOnAction(this::onMoveSelectedClips);
+
+        MenuItem moveToSelectedClipsMenuItem = new MenuItem("Move to...");
+        moveToSelectedClipsMenuItem.setOnAction(this::onMoveToSelectedClips);
+
+        MenuItem removeSelectedClipsMenuItem = new MenuItem("Remove");
+        removeSelectedClipsMenuItem.setOnAction(this::onRemoveSelectedClips);
+
+        MenuItem copySelectedClipsMenuItem = new MenuItem("Copy");
+        copySelectedClipsMenuItem.setOnAction(this::onCopySelectedClips);
+
+        selectionContextMenu.getItems().addAll(moveSelectedClipsMenuItem, moveToSelectedClipsMenuItem, removeSelectedClipsMenuItem, copySelectedClipsMenuItem);
+
+
+
+    }
+
+    private void onMoveSelectedClips(ActionEvent actionEvent) {
+        if (!selectedClips.isEmpty()) {
+
+            stopPlaybackForEdit();
+
+            System.out.println("move clips");
+
+            TextInputDialog dialog = new TextInputDialog("0.5");
+            dialog.setTitle("Move clip");
+            dialog.setHeaderText("Enter seconds to move ");
+            dialog.setContentText("Seconds");
+
+            Optional<String> result = dialog.showAndWait();
+            result.ifPresent(value -> {
+                try {
+                    double seconds = Double.parseDouble(value.replace(",", "."));
+
+                    selectedClips.forEach(clipPane ->
+                            clipPane.setClipStartPosition(
+                                    clipPane.getAudioClip().getTimelineMsPosition() + (int) (seconds * 1000)
+                            )
+                    );
+
+                } catch (NumberFormatException ignored) {
+                    // Ignored
+                }
+            });
+            reloadPlaybackEngine();
+        }
+    }
+
+    private void onMoveToSelectedClips(ActionEvent actionEvent) {
+        if (!selectedClips.isEmpty()) {
+
+            stopPlaybackForEdit();
+
+
+            TextInputDialog dialog = new TextInputDialog("0");
+            dialog.setTitle("Move clip to...");
+            dialog.setHeaderText("Enter seconds to move to");
+            dialog.setContentText("Seconds");
+
+            Optional<String> result = dialog.showAndWait();
+            result.ifPresent(value -> {
+                try {
+                    double seconds = Double.parseDouble(value.replace(",", "."));
+
+                    int offset = selectedClips
+                            .stream()
+                            .sorted()
+                            .toList()
+                            .getFirst()
+                            .getAudioClip()
+                            .getTimelineMsPosition() - (int) (seconds * 1000);
+
+                    selectedClips.forEach(clipPane ->
+                            clipPane.setClipStartPosition(clipPane.getAudioClip().getTimelineMsPosition() - offset)
+                    );
+
+                } catch (NumberFormatException ignored) {
+                    // Ignored
+                }
+            });
+            reloadPlaybackEngine();
+        }
+    }
+
+    private void onRemoveSelectedClips(ActionEvent actionEvent) {
+        if (!selectedClips.isEmpty()) {
+
+            stopPlaybackForEdit();
+
+
+            selectedClips.forEach(clipPane ->
+                    trackPanes.forEach(trackPane -> {
+                        if (trackPane.getClipPanes().contains(clipPane)) trackPane.removeAudioClip(clipPane);
+                    })
+            );
+
+            clearSelection();
+            reloadPlaybackEngine();
+        }
+    }
+
+    private void onCopySelectedClips(ActionEvent actionEvent) {
+        copiedClips.addAll(selectedClips);
+    }
+
+
+
+    public void pasteClipPanes( List<ClipPane> clipPanes, TrackPane targetTrackPane) {
+        if (!selectedClips.isEmpty()) {
+            stopPlaybackForEdit();
+            int startMs = calculateClipStartMs(targetTrackPane);
+
+            int offset = selectedClips
+                    .stream()
+                    .sorted()
+                    .toList()
+                    .getFirst()
+                    .getAudioClip()
+                    .getTimelineMsPosition() - startMs;
+
+
+            clipPanes.stream().sorted().forEach(clipPane -> {
+                Clip pastedClip = new Clip(
+                        clipPane.getAudioClip().getWavFile(),
+                        clipPane.getAudioClip().getTimelineMsPosition() - offset
+                );
+                targetTrackPane.addAudioClip(pastedClip);
+            });
+
+            reloadPlaybackEngine();
+        }
+    }
+
+
 
     @FXML
     private void toggleSelectionTool() {
@@ -314,7 +471,7 @@ public class MainController {
 
             TreeItem<String> cursor = item;
             while (cursor != null && cursor != root) {
-                parents.add(0, cursor.getValue());
+                parents.addFirst(cursor.getValue());
                 cursor = cursor.getParent();
             }
 

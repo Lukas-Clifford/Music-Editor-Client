@@ -12,6 +12,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Optional;
 
-public class ClipPane extends Pane implements Serializable {
+public class ClipPane extends Pane implements Serializable, Comparable<ClipPane> {
 
     private static final long serialVersionUID = 1L;
 
@@ -38,6 +39,7 @@ public class ClipPane extends Pane implements Serializable {
 
     private transient BooleanProperty selectionEnabledProperty = new SimpleBooleanProperty(false);
     private transient EventHandler<ActionEvent> onSelectionAction;
+    private transient EventHandler<MouseEvent> onRightClickSelectionAction;
     private boolean selected = false;
 
     public ClipPane(Clip clip, FloatProperty zoomFactor) {
@@ -114,9 +116,14 @@ public class ClipPane extends Pane implements Serializable {
         setOnMousePressed(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
                 if (selectionEnabledProperty != null && selectionEnabledProperty.get() && onSelectionAction != null) {
-                    onSelectionAction.handle(new javafx.event.ActionEvent(this, null));
+                    onSelectionAction.handle(new ActionEvent(this, null));
                 }
-            } else if (event.getButton() == MouseButton.SECONDARY && !selectionEnabledProperty.get()) {
+            } else if (event.getButton() == MouseButton.SECONDARY && selected && onRightClickSelectionAction != null) {
+                event.consume();
+                onRightClickSelectionAction.handle(event);
+
+            }
+            else if (event.getButton() == MouseButton.SECONDARY && !selectionEnabledProperty.get()) {
                 event.consume();
                 contextMenu.show(this, event.getScreenX(), event.getScreenY());
             } else if (contextMenu.isShowing()) {
@@ -172,6 +179,9 @@ public class ClipPane extends Pane implements Serializable {
     public void setOnSelectionAction(EventHandler<ActionEvent> onSelectionAction) {
         this.onSelectionAction = onSelectionAction;
     }
+    public void setOnRightClickSelectionAction(EventHandler<MouseEvent> onRightClickSelectionAction) {
+        this.onRightClickSelectionAction = onRightClickSelectionAction;
+    }
 
 
     public BooleanProperty selectionEnabledPropertyProperty() {
@@ -209,5 +219,10 @@ public class ClipPane extends Pane implements Serializable {
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
+    }
+
+    @Override
+    public int compareTo(ClipPane o) {
+        return Double.compare(this.audioClip.getTimelineMsPosition(), o.audioClip.getTimelineMsPosition());
     }
 }

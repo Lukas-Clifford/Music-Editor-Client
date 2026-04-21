@@ -44,6 +44,8 @@ public class TrackPane implements Serializable {
     private transient EventHandler<MouseEvent> onMousePressedAction;
     private transient EventHandler<ActionEvent> onTrimAction;
     private transient EventHandler<ActionEvent> onClipSelection;
+    private transient EventHandler<MouseEvent> onRightClickSelection;
+    private transient EventHandler<ActionEvent> onPasteCopiedClips;
     private transient Pane rulerPane;
     private transient BooleanProperty selectionToolEnabledProperty = new SimpleBooleanProperty(false);
 
@@ -138,14 +140,13 @@ public class TrackPane implements Serializable {
             if (onAddReiterativeClipAction != null) onAddReiterativeClipAction.handle(event);
         });
 
-        timeLinePaneContextMenu.getItems().addAll(addClipItem, addReiterativeClipItem);
-
-        timeLinePane.setOnMousePressed(event -> {
-            lastMouseX = event.getX();
-            if (event.getButton() == MouseButton.SECONDARY && !selectionToolEnabledProperty.get()) {
-                timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
-            }
+        MenuItem pasteClipPanesItem = new MenuItem("Paste");
+        pasteClipPanesItem.setOnAction(event -> {
+            if (onPasteCopiedClips != null) onPasteCopiedClips.handle(event);
         });
+
+        timeLinePaneContextMenu.getItems().addAll(addClipItem, addReiterativeClipItem, pasteClipPanesItem);
+
     }
 
     public double getLastMouseX() {
@@ -154,6 +155,10 @@ public class TrackPane implements Serializable {
 
     public void setOnAddReiterativeClipAction(EventHandler<ActionEvent> onAddReiterativeClipAction) {
         this.onAddReiterativeClipAction = onAddReiterativeClipAction;
+    }
+
+    public void setOnPasteCopiedClips(EventHandler<ActionEvent> onPasteCopiedClips) {
+        this.onPasteCopiedClips = onPasteCopiedClips;
     }
 
     public void setOnDeleteAction(EventHandler<ActionEvent> onDeleteAction) {
@@ -176,6 +181,12 @@ public class TrackPane implements Serializable {
         this.onClipSelection = onClipSelection;
         for (ClipPane clipPane : clipPanes) {
             clipPane.setOnSelectionAction(onClipSelection);
+        }
+    }
+    public void setOnRightClickSelection(EventHandler<MouseEvent> onRightClickSelection) {
+        this.onRightClickSelection = onRightClickSelection;
+        for (ClipPane clipPane : clipPanes) {
+            clipPane.setOnRightClickSelectionAction(onRightClickSelection);
         }
     }
 
@@ -212,6 +223,7 @@ public class TrackPane implements Serializable {
                 clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
             }
             clipPane.setOnSelectionAction(onClipSelection);
+            clipPane.setOnRightClickSelectionAction(onRightClickSelection);
         }
     }
 
@@ -226,6 +238,8 @@ public class TrackPane implements Serializable {
             clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
         }
         clipPane.setOnSelectionAction(onClipSelection);
+        clipPane.setOnRightClickSelectionAction(onRightClickSelection);
+
 
         if (timeLinePane != null) {
             clipPane.prefHeightProperty().bind(timeLinePane.heightProperty());
@@ -249,13 +263,15 @@ public class TrackPane implements Serializable {
             }
         });
         clipPane.setOnSelectionAction(onClipSelection);
+        clipPane.setOnRightClickSelectionAction(onRightClickSelection);
+
         if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
             clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
         }
     }
 
 
-    private void removeAudioClip(ClipPane clipPane) {
+    public void removeAudioClip(ClipPane clipPane) {
         track.removeClip(clipPane.getAudioClip());
         clipPanes.remove(clipPane);
         timeLinePane.getChildren().remove(clipPane);
@@ -339,11 +355,9 @@ public class TrackPane implements Serializable {
                 if (onMousePressedAction != null) {
                     onMousePressedAction.handle(event);
                 }
-            } else if (event.getButton() == MouseButton.SECONDARY) {
+            } else if (event.getButton() == MouseButton.SECONDARY && !selectionToolEnabledProperty.get()) {
+                timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
                 event.consume();
-                if (timeLinePaneContextMenu != null) {
-                    timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());
-                }
             }
         });
     }
