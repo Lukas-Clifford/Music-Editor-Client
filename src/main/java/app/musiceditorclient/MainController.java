@@ -259,9 +259,41 @@ public class MainController {
                 tracksTableView.refresh();
             }
         });
+
+        trackPane.setOnSplitClip(event -> {
+            if (event.getSource() instanceof ClipPane clipPane) {
+                splitClipPane(trackPane, clipPane);
+            }
+        });
+
         trackPane.bindZoomFactor(zoomFactor);
         trackPane.bindClipStartOffset(clipStartOffset);
         trackPane.bindSelectionEnabled(isSelectionToolActiveProperty);
+    }
+
+    private void splitClipPane(TrackPane trackPane, ClipPane clipPane) {
+        stopPlaybackForEdit();
+
+        double splittingPoint = clipPane.getLastMouseX();
+        // Width = ZoomFactor * msLength -> l = w/z
+        int splittingMs = (int) (splittingPoint/ zoomFactor.get());
+
+        File wavFile = clipPane.getAudioClip().getWavFile();
+        int timelineMsPosition = clipPane.getAudioClip().getTimelineMsPosition();
+
+        Clip frontPartClip = new Clip(wavFile, timelineMsPosition);
+        frontPartClip.setLength(splittingMs);
+
+        Clip backPartClip = new Clip(wavFile, timelineMsPosition + splittingMs);
+        backPartClip.setLength(clipPane.getAudioClip().getLength()-splittingMs);
+
+        trackPane.addAudioClip(frontPartClip);
+        trackPane.addAudioClip(backPartClip);
+
+        trackPane.removeAudioClip(clipPane);
+
+        reloadPlaybackEngine();
+
     }
 
     private void showSelectionContextMenu(MouseEvent event) {

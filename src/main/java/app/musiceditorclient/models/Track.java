@@ -37,7 +37,7 @@ public class Track implements Comparable<Track>, Serializable {
 
     public void addClip(Clip clip) {
         this.clips.add(clip);
-        this.length = clips.getLast().getEndPosition();
+        this.length = clips.stream().sorted().toList().getLast().getEndPosition();
     }
 
     public void removeClip(Clip clip){

@@ -36,11 +36,15 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
     private transient EventHandler<ActionEvent> onMoveAction;
     private transient EventHandler<ActionEvent> onTrimAction;
     private transient EventHandler<ActionEvent> onRemoveAction;
+    private transient EventHandler<ActionEvent> onSplitAction;
 
     private transient BooleanProperty selectionEnabledProperty = new SimpleBooleanProperty(false);
     private transient EventHandler<ActionEvent> onSelectionAction;
     private transient EventHandler<MouseEvent> onRightClickSelectionAction;
     private boolean selected = false;
+
+    private double lastMouseX = 0d;
+
 
     public ClipPane(Clip clip, FloatProperty zoomFactor) {
         this.audioClip = clip;
@@ -111,9 +115,19 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
             }
         });
 
-        contextMenu.getItems().addAll(moveItem, trimItem, removeItem);
+        MenuItem splitItem = new MenuItem("Split");
+        splitItem.setOnAction(event -> {
+            if (onSplitAction != null) {
+                onSplitAction.handle(event);
+            }
+        });
+
+
+        contextMenu.getItems().addAll(moveItem, trimItem, removeItem,splitItem);
 
         setOnMousePressed(event -> {
+            lastMouseX = event.getX();
+
             if (event.getButton() == MouseButton.PRIMARY) {
                 if (selectionEnabledProperty != null && selectionEnabledProperty.get() && onSelectionAction != null) {
                     onSelectionAction.handle(new ActionEvent(this, null));
@@ -150,6 +164,10 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
 
     public void setOnRemoveAction(EventHandler<ActionEvent> onRemoveAction) {
         this.onRemoveAction = onRemoveAction;
+    }
+
+    public void setOnSplitAction(EventHandler<ActionEvent> onSplitAction) {
+        this.onSplitAction = onSplitAction;
     }
 
     public void setClipStartPosition(int milliseconds) {
@@ -224,5 +242,10 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
     @Override
     public int compareTo(ClipPane o) {
         return Double.compare(this.audioClip.getTimelineMsPosition(), o.audioClip.getTimelineMsPosition());
+    }
+
+
+    public double getLastMouseX() {
+        return lastMouseX;
     }
 }

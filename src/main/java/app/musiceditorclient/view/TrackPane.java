@@ -46,6 +46,7 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onClipSelection;
     private transient EventHandler<MouseEvent> onRightClickSelection;
     private transient EventHandler<ActionEvent> onPasteCopiedClips;
+    private transient EventHandler<ActionEvent> onSplitClip;
     private transient Pane rulerPane;
     private transient BooleanProperty selectionToolEnabledProperty = new SimpleBooleanProperty(false);
 
@@ -190,6 +191,10 @@ public class TrackPane implements Serializable {
         }
     }
 
+    public void setOnSplitClip(EventHandler<ActionEvent> onSplitClip) {
+        this.onSplitClip = onSplitClip;
+    }
+
     public FloatProperty clipStartOffsetProperty() {
         return clipStartOffset;
     }
@@ -264,6 +269,11 @@ public class TrackPane implements Serializable {
         });
         clipPane.setOnSelectionAction(onClipSelection);
         clipPane.setOnRightClickSelectionAction(onRightClickSelection);
+        clipPane.setOnSplitAction(event -> {
+            if (onSplitClip != null) {
+                onSplitClip.handle(new javafx.event.ActionEvent(clipPane, null));
+            }
+        });
 
         if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
             clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
