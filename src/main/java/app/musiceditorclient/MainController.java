@@ -14,7 +14,10 @@ import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
@@ -23,6 +26,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
@@ -663,6 +668,18 @@ public class MainController {
         return Math.max(0, (int) ms);
     }
 
+    private static final class RecursiveClipDialogResult {
+        final float startingSeconds;
+        final float secondsBetweenRepetition;
+        final int numberOfRepetitions;
+
+        private RecursiveClipDialogResult(float startingSeconds, float secondsBetweenRepetition, int numberOfRepetitions) {
+            this.startingSeconds = startingSeconds;
+            this.secondsBetweenRepetition = secondsBetweenRepetition;
+            this.numberOfRepetitions = numberOfRepetitions;
+        }
+    }
+
     private void chooseAndAddReiterativeClip(TrackPane trackPane) {
         stopPlaybackForEdit();
 
@@ -681,33 +698,18 @@ public class MainController {
             return;
         }
 
-        TextInputDialog secondsDialog = new TextInputDialog("1");
-        secondsDialog.setTitle("Add recursive clip");
-        secondsDialog.setHeaderText("How many seconds between each repetition");
-        secondsDialog.setContentText("Seconds:");
-
-        Optional<String> secondsResult = secondsDialog.showAndWait();
-        if (secondsResult.isEmpty()) {
+        Optional<RecursiveClipDialogResult> dialogResult = showRecursiveClipDialog();
+        if (dialogResult.isEmpty()) {
             return;
         }
 
-        TextInputDialog repetitionsDialog = new TextInputDialog("2");
-        repetitionsDialog.setTitle("Add recursive clip");
-        repetitionsDialog.setHeaderText("How many repetitions to add");
-        repetitionsDialog.setContentText("Repetitions:");
-
-        Optional<String> repetitionsResult = repetitionsDialog.showAndWait();
-        if (repetitionsResult.isEmpty()) {
-            return;
-        }
-
+        RecursiveClipDialogResult values = dialogResult.get();
         try {
-            float seconds = Float.parseFloat(secondsResult.get().replace(",", "."));
-            int repetitions = Integer.parseInt(repetitionsResult.get());
-            float stepMs = seconds * 1000f;
+            int startingMs = (int) (values.startingSeconds * 1000f);
+            int stepMs = (int) (values.secondsBetweenRepetition * 1000f);
 
-            for (int i = 0; i < repetitions; i++) {
-                trackPane.addAudioClip(new Clip(file, (int) (i * stepMs)));
+            for (int i = 0; i < values.numberOfRepetitions; i++) {
+                trackPane.addAudioClip(new Clip(file, startingMs + (i * stepMs)));
             }
             reloadPlaybackEngine();
         } catch (NumberFormatException ignored) {
@@ -715,6 +717,53 @@ public class MainController {
         }
     }
 
+    private Optional<RecursiveClipDialogResult> showRecursiveClipDialog() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                    "/app/musiceditorclient/views/add-recursive-clip-window.fxml"
+            ));
+            Parent root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle("Add recursive clip");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setResizable(false);
+            stage.setScene(new Scene(root));
+
+            TextField startingSecondsField = (TextField) root.lookup("#startingSecondsField");
+            TextField secondsBetweenRepetitionField = (TextField) root.lookup("#secondsBetweenRepetitionField");
+            TextField numberOfRepetitionsField = (TextField) root.lookup("#numberOfRepetitionsField");
+            Button acceptButton = (Button) root.lookup("#acceptButton");
+            Button cancelButton = (Button) root.lookup("#cancelButton");
+
+            final RecursiveClipDialogResult[] result = new RecursiveClipDialogResult[1];
+
+            acceptButton.setOnAction(event -> {
+                try {
+                    float startingSeconds = Float.parseFloat(startingSecondsField.getText().trim().replace(",", "."));
+                    float secondsBetweenRepetition = Float.parseFloat(secondsBetweenRepetitionField.getText().trim().replace(",", "."));
+                    int numberOfRepetitions = Integer.parseInt(numberOfRepetitionsField.getText().trim());
+
+                    result[0] = new RecursiveClipDialogResult(
+                            startingSeconds,
+                            secondsBetweenRepetition,
+                            numberOfRepetitions
+                    );
+                    stage.close();
+                } catch (NumberFormatException ignored) {
+                    // Ignored
+                }
+            });
+
+            cancelButton.setOnAction(event -> stage.close());
+
+            stage.showAndWait();
+            return Optional.ofNullable(result[0]);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            return Optional.empty();
+        }
+    }
 
     private void setupTrackHeaderContextMenu() {
         MenuItem addTrackItem = new MenuItem("Add track");
