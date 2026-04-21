@@ -8,11 +8,13 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 
@@ -47,8 +49,13 @@ public class TrackPane implements Serializable {
     private transient EventHandler<MouseEvent> onRightClickSelection;
     private transient EventHandler<ActionEvent> onPasteCopiedClips;
     private transient EventHandler<ActionEvent> onSplitClip;
+    private transient EventHandler<ActionEvent> onMoveTrackUp;
+    private transient EventHandler<ActionEvent> onMoveTrackDown;
+    private transient EventHandler<ActionEvent> onMuteTrack;
     private transient Pane rulerPane;
     private transient BooleanProperty selectionToolEnabledProperty = new SimpleBooleanProperty(false);
+
+    private transient boolean isMuted = false;
 
     public TrackPane(FloatProperty zoomFactor) {
         this.track = new Track();
@@ -77,9 +84,52 @@ public class TrackPane implements Serializable {
         timeLinePane.getChildren().add(rulerPane);
 
         setupTimeLinePaneContextMenu();
-        setupControlPaneContextMenu();
         setupTimeLinePaneMouseEvents();
         setupRulerPainting();
+
+        setupControlPane();
+
+    }
+
+    private void setupControlPane() {
+        setupControlPaneContextMenu();
+
+        Button muteButton = new Button("Mute");
+        Button removeButton = new Button("Remove");
+        Button moveUpButton = new Button("/\\");
+        Button moveDownButton = new Button("\\/");
+
+        HBox controlButtonsHBox = new HBox();
+        controlButtonsHBox.getChildren().addAll(muteButton, removeButton);
+
+        VBox controlPaneVBox = new VBox();
+        controlPaneVBox.getChildren().addAll(moveUpButton, controlButtonsHBox, moveDownButton);
+        controlPaneVBox.setAlignment(Pos.CENTER);
+        controlPaneVBox.setSpacing(5);
+
+        controlPane.getChildren().add(controlPaneVBox);
+
+
+
+        muteButton.setOnAction(event -> {
+            if (onMuteTrack != null) onMuteTrack.handle(event);
+        });
+
+        removeButton.setOnAction(event -> {
+            if (onDeleteAction != null) onDeleteAction.handle(event);
+        });
+
+        moveUpButton.setOnAction(event -> {
+            if (onMoveTrackUp != null) onMoveTrackUp.handle(event);
+        });
+
+        moveDownButton.setOnAction(event -> {
+            if (onMoveTrackDown != null) onMoveTrackDown.handle(event);
+        });
+
+
+
+
     }
 
     private void setupRulerPainting() {
@@ -195,6 +245,18 @@ public class TrackPane implements Serializable {
         this.onSplitClip = onSplitClip;
     }
 
+    public void setOnMoveTrackUp(EventHandler<ActionEvent> onMoveTrackUp) {
+        this.onMoveTrackUp = onMoveTrackUp;
+    }
+
+    public void setOnMoveTrackDown(EventHandler<ActionEvent> onMoveTrackDown) {
+        this.onMoveTrackDown = onMoveTrackDown;
+    }
+
+    public void setOnMuteTrack(EventHandler<ActionEvent> onMuteTrack) {
+        this.onMuteTrack = onMuteTrack;
+    }
+
     public FloatProperty clipStartOffsetProperty() {
         return clipStartOffset;
     }
@@ -210,6 +272,24 @@ public class TrackPane implements Serializable {
     public Track getTrack() {
         return track;
     }
+
+    public boolean isMuted() {
+        return isMuted;
+    }
+
+    public void setMuted(boolean muted) {
+        isMuted = muted;
+    }
+
+    public void toggleMuted() {
+        this.isMuted = !this.isMuted;
+        if (isMuted)
+            this.controlPane.setStyle("-fx-background-color:gray;");
+        else
+            this.controlPane.setStyle("-fx-background-color:transparent;");
+
+    }
+
 
     public void bindSelectionEnabled(BooleanProperty isSelectionToolActiveProperty) {
         if (isSelectionToolActiveProperty == null) {

@@ -189,7 +189,6 @@ public class PlaybackEngine {
     private byte[] getMixedTracks() {
         byte[] mixed = new byte[songLength * NORMALISED_FRAME_RATE];
 
-        System.out.println(tracks);
         for (Track track:tracks) mixPCM16Stereo(mixed, getTrackInPCM(track), mixed);
 
         return mixed;

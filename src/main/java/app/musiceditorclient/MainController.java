@@ -125,7 +125,7 @@ public class MainController {
 
     private FloatProperty smoothTrackHeightProperty() {
         SimpleFloatProperty smoothHeight = new SimpleFloatProperty();
-        smoothHeight.bind(zoomFactor.multiply(60).add(40));
+        smoothHeight.bind(zoomFactor.multiply(500).add(40));
         return smoothHeight;
     }
 
@@ -265,6 +265,38 @@ public class MainController {
                 splitClipPane(trackPane, clipPane);
             }
         });
+
+        trackPane.setOnMoveTrackUp(event -> {
+
+            int index = trackPanes.indexOf(trackPane);
+            if (index != 0) {
+                trackPanes.remove(trackPane);
+                trackPanes.add(index-1, trackPane);
+                tracksTableView.refresh();
+            }
+
+
+        });
+
+        trackPane.setOnMoveTrackDown(event -> {
+
+            int index = trackPanes.indexOf(trackPane);
+            if (index != trackPanes.size() - 1) {
+                trackPanes.remove(trackPane);
+                trackPanes.add(index+1, trackPane);
+                tracksTableView.refresh();
+            }
+
+
+        });
+
+        trackPane.setOnMuteTrack(event -> {
+
+            trackPane.toggleMuted();
+            reloadPlaybackEngine();
+
+        });
+
 
         trackPane.bindZoomFactor(zoomFactor);
         trackPane.bindClipStartOffset(clipStartOffset);
@@ -519,7 +551,8 @@ public class MainController {
     private void reloadPlaybackEngine() {
         pe.clearTracks();
         for (TrackPane trackPane : trackPanes) {
-            pe.addTrack(trackPane.getTrack());
+            if (!trackPane.isMuted())
+                pe.addTrack(trackPane.getTrack());
         }
     }
 
