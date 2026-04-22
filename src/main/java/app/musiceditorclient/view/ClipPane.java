@@ -105,20 +105,20 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
 
         MenuItem trimItem = new MenuItem("Trim");
         trimItem.setOnAction(event -> {
-            if (onTrimAction != null) onTrimAction.handle(event);
+            if (onTrimAction != null) onTrimAction.handle(new ActionEvent(this, null));
         });
 
         MenuItem removeItem = new MenuItem("Delete");
         removeItem.setOnAction(event -> {
             if (onRemoveAction != null) {
-                onRemoveAction.handle(new javafx.event.ActionEvent(this, null));
+                onRemoveAction.handle(new ActionEvent(this, null));
             }
         });
 
         MenuItem splitItem = new MenuItem("Split");
         splitItem.setOnAction(event -> {
             if (onSplitAction != null) {
-                onSplitAction.handle(event);
+                onSplitAction.handle(new ActionEvent(this, null));
             }
         });
 

@@ -20,6 +20,7 @@ import javafx.scene.shape.Line;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onDeleteAction;
     private transient EventHandler<ActionEvent> onAddClipAction;
     private transient EventHandler<ActionEvent> onAddReiterativeClipAction;
-    private transient EventHandler<MouseEvent> onMousePressedAction;
+    private transient EventHandler<ActionEvent> onMousePressedAction;
     private transient EventHandler<ActionEvent> onTrimAction;
     private transient EventHandler<ActionEvent> onClipSelection;
     private transient EventHandler<MouseEvent> onRightClickSelection;
@@ -112,19 +113,19 @@ public class TrackPane implements Serializable {
 
 
         muteButton.setOnAction(event -> {
-            if (onMuteTrack != null) onMuteTrack.handle(event);
+            if (onMuteTrack != null) onMuteTrack.handle(new ActionEvent(this, null));
         });
 
         removeButton.setOnAction(event -> {
-            if (onDeleteAction != null) onDeleteAction.handle(event);
+            if (onDeleteAction != null) onDeleteAction.handle(new ActionEvent(this, null));
         });
 
         moveUpButton.setOnAction(event -> {
-            if (onMoveTrackUp != null) onMoveTrackUp.handle(event);
+            if (onMoveTrackUp != null) onMoveTrackUp.handle(new ActionEvent(this, null));
         });
 
         moveDownButton.setOnAction(event -> {
-            if (onMoveTrackDown != null) onMoveTrackDown.handle(event);
+            if (onMoveTrackDown != null) onMoveTrackDown.handle(new ActionEvent(this, null));
         });
 
 
@@ -163,7 +164,7 @@ public class TrackPane implements Serializable {
 
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(event -> {
-            if (onDeleteAction != null) onDeleteAction.handle(event);
+            if (onDeleteAction != null) onDeleteAction.handle(new ActionEvent(this,null));
         });
 
         controlPaneContextMenu.getItems().add(deleteItem);
@@ -183,17 +184,17 @@ public class TrackPane implements Serializable {
 
         MenuItem addClipItem = new MenuItem("Add clip");
         addClipItem.setOnAction(event -> {
-            if (onAddClipAction != null) onAddClipAction.handle(event);
+            if (onAddClipAction != null) onAddClipAction.handle(new ActionEvent(this, null));
         });
 
         MenuItem addReiterativeClipItem = new MenuItem("Add recursive clip");
         addReiterativeClipItem.setOnAction(event -> {
-            if (onAddReiterativeClipAction != null) onAddReiterativeClipAction.handle(event);
+            if (onAddReiterativeClipAction != null) onAddReiterativeClipAction.handle(new ActionEvent(this, null));
         });
 
         MenuItem pasteClipPanesItem = new MenuItem("Paste");
         pasteClipPanesItem.setOnAction(event -> {
-            if (onPasteCopiedClips != null) onPasteCopiedClips.handle(event);
+            if (onPasteCopiedClips != null) onPasteCopiedClips.handle(new ActionEvent(this, null));
         });
 
         timeLinePaneContextMenu.getItems().addAll(addClipItem, addReiterativeClipItem, pasteClipPanesItem);
@@ -220,7 +221,7 @@ public class TrackPane implements Serializable {
         this.onAddClipAction = onAddClipAction;
     }
 
-    public void setOnMousePressedAction(EventHandler<MouseEvent> onMousePressedAction) {
+    public void setOnMousePressedAction(EventHandler<ActionEvent> onMousePressedAction) {
         this.onMousePressedAction = onMousePressedAction;
     }
 
@@ -351,7 +352,7 @@ public class TrackPane implements Serializable {
         clipPane.setOnRightClickSelectionAction(onRightClickSelection);
         clipPane.setOnSplitAction(event -> {
             if (onSplitClip != null) {
-                onSplitClip.handle(new javafx.event.ActionEvent(clipPane, null));
+                onSplitClip.handle(new javafx.event.ActionEvent(this, clipPane));
             }
         });
 
@@ -405,6 +406,7 @@ public class TrackPane implements Serializable {
         setupRulerPainting();
     }
 
+    @Serial
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         this.zoomFactor = new SimpleFloatProperty(1f);
@@ -443,7 +445,7 @@ public class TrackPane implements Serializable {
 
             if (event.getButton() == MouseButton.PRIMARY) {
                 if (onMousePressedAction != null) {
-                    onMousePressedAction.handle(event);
+                    onMousePressedAction.handle(new ActionEvent(this, null));
                 }
             } else if (event.getButton() == MouseButton.SECONDARY && !selectionToolEnabledProperty.get()) {
                 timeLinePaneContextMenu.show(timeLinePane, event.getScreenX(), event.getScreenY());

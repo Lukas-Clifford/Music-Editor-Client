@@ -10,13 +10,19 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class MainApplication extends Application {
+
+    private final EditorContext context = new EditorContext();
+    private final EditorServices services = new EditorServices(context);
+
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(MainApplication.class.getResource("main-view.fxml"));
+        MainController controller = new MainController(context, services);
+        fxmlLoader.setController(controller);
+
         Scene scene = new Scene(fxmlLoader.load());
 
-        MainController controller = fxmlLoader.getController();
-        controller.setOnProjectLoadedListener(projectPath ->
+        services.projectPersistenceService().setOnProjectLoadedListener(projectPath ->
                 stage.setTitle(projectPath.getFileName().toString().replace(".musicproject", "")));
 
         stage.setTitle("Music Editor");
@@ -26,15 +32,15 @@ public class MainApplication extends Application {
 
         scene.setOnScroll(event -> {
             if (event.isControlDown()) {
-                controller.zoomFactor.set(
-                        (float) (controller.zoomFactor.get() + (Math.signum(event.getDeltaY()) / 100))
+                context.ui().zoomFactorProperty().set(
+                        (float) (context.ui().zoomFactorProperty().get() + (Math.signum(event.getDeltaY()) / 100))
                 );
                 event.consume();
 
             } else if (event.isShiftDown()) {
 
-                float nextOffset = controller.clipStartOffset.get() + (float) Math.signum(event.getDeltaX()) * 50;
-                controller.clipStartOffset.set(Math.max(0f, nextOffset));
+                float nextOffset = context.ui().clipStartOffsetProperty().get() + (float) Math.signum(event.getDeltaX()) * 50;
+                context.ui().clipStartOffsetProperty().set(Math.max(0f, nextOffset));
                 event.consume();
 
             }
@@ -42,29 +48,29 @@ public class MainApplication extends Application {
 
         scene.setOnKeyPressed(event -> {
             if (event.isControlDown() && event.getCode() == KeyCode.S)
-                controller.saveProject();
+                services.projectPersistenceService().saveProject();
 
             if (event.isShiftDown() && event.getCode() == KeyCode.ESCAPE)
                 stage.close();
 
             if (event.getCode() == KeyCode.CONTROL)
-                controller.enableSelection();
+                services.selectionService().enableSelection();
 
             if (event.isShiftDown() && event.isControlDown() && event.getCode() == KeyCode.A)
-                controller.clearSelection();
+                services.selectionService().clearSelection();
 
         });
 
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.SPACE) {
-                controller.play();
+                controller.onPlay();
                 event.consume();
             }
         });
 
         scene.setOnKeyReleased(event -> {
             if (event.getCode() == KeyCode.CONTROL)
-                controller.disableSelection();
+                services.selectionService().disableSelection();
         });
 
         stage.show();
