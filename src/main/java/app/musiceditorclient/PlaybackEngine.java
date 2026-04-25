@@ -83,11 +83,7 @@ public class PlaybackEngine {
             int bufferFrames = 1024;
             byte[] buffer = new byte[bufferFrames * FRAME_SIZE];
 
-            if (pausedFrame <= 0f) {
-                seeker.set(0f);
-            } else {
-                seeker.set(pausedFrame);
-            }
+            seeker.set(Math.max(pausedFrame, 0f));
 
             while (!stopRequested) {
                 int writtenFrames = floatToInt(pausedFrame);
@@ -198,7 +194,8 @@ public class PlaybackEngine {
     }
 
     public void setPausedFrame(float pausedFrame) {
-        this.pausedFrame = pausedFrame;
+        this.pausedFrame = Math.max(0, pausedFrame);
+        this.seeker.set(this.pausedFrame);
     }
 
     public boolean isPaused() {

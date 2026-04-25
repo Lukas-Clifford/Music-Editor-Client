@@ -55,5 +55,12 @@ public class PlaybackService {
         reloadPlaybackEngine();
     }
 
+    public void goToFrame(float frame) {
+        context.playback().getPlaybackEngine().requestPause();
+        context.playback().getPlaybackEngine().setPausedFrame(frame);
+
+
+    }
+
 
 }

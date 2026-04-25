@@ -59,6 +59,19 @@ public class MainApplication extends Application {
             if (event.isShiftDown() && event.isControlDown() && event.getCode() == KeyCode.A)
                 services.selectionService().clearSelection();
 
+            if (event.getCode() == KeyCode.DIGIT1)
+                    services.playbackService().goToFrame(
+                            context.playback().getPlaybackEngine().getPausedFrame()-44100);
+            if (event.getCode() == KeyCode.DIGIT2)
+                    services.playbackService().goToFrame(
+                            context.playback().getPlaybackEngine().getPausedFrame()+44100);
+            if (event.getCode() == KeyCode.DIGIT3)
+                    services.playbackService().goToFrame(
+                            context.playback().getPlaybackEngine().getPausedFrame()-11025);
+            if (event.getCode() == KeyCode.DIGIT4)
+                    services.playbackService().goToFrame(
+                            context.playback().getPlaybackEngine().getPausedFrame()+11025);
+
         });
 
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
