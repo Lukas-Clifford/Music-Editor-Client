@@ -53,4 +53,10 @@ public class AddReiterativeClipCommand extends EditorCommand{
 
         services.playbackService().reloadPlaybackEngine();
     }
+
+    @Override
+    public String getDescription() {
+        return this.file.getName() + " added " + this.values.numberOfRepetitions() + " times at " +
+                this.values.startingSeconds() + " separated by " + this.values.secondsBetweenRepetition() + " seconds";
+    }
 }

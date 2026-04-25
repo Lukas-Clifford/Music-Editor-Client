@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RemoveSelectionCommand extends EditorCommand {
-    private List<ClipPane> clipPanes = new ArrayList<>();
+    private final List<ClipPane> clipPanes = new ArrayList<>();
 
     public RemoveSelectionCommand(Event event) {
         super(event);
@@ -44,5 +44,10 @@ public class RemoveSelectionCommand extends EditorCommand {
 
         services.playbackService().reloadPlaybackEngine();
 
+    }
+
+    @Override
+    public String getDescription() {
+        return "Removed selected clips " + this.clipPanes;
     }
 }

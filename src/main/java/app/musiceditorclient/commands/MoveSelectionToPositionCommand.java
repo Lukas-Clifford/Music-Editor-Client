@@ -50,4 +50,9 @@ public class MoveSelectionToPositionCommand extends EditorCommand{
 
         services.playbackService().reloadPlaybackEngine();
     }
+
+    @Override
+    public String getDescription() {
+        return "Moved " + this.clipPanes + " to " + this.seconds;
+    }
 }

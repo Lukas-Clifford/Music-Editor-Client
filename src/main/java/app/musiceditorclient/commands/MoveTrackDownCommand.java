@@ -51,4 +51,9 @@ public class MoveTrackDownCommand extends EditorCommand{
         services.playbackService().reloadPlaybackEngine();
 
     }
+
+    @Override
+    public String getDescription() {
+        return "Moved track " + this.trackPane + " down by one";
+    }
 }

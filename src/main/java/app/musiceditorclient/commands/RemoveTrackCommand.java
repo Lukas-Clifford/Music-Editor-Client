@@ -8,6 +8,7 @@ import javafx.event.Event;
 public class RemoveTrackCommand extends EditorCommand {
 
     private TrackPane trackPane;
+    private int index;
 
     public RemoveTrackCommand(Event event) {
         super(event);
@@ -18,6 +19,8 @@ public class RemoveTrackCommand extends EditorCommand {
         services.playbackService().stopPlaybackForEdit();
 
         trackPane = (TrackPane) event.getSource();
+        index = context.project().getTrackPanes().indexOf(trackPane);
+
         context.project().getTrackPanes().remove(trackPane);
 
         services.playbackService().reloadPlaybackEngine();
@@ -31,5 +34,10 @@ public class RemoveTrackCommand extends EditorCommand {
 
         services.playbackService().reloadPlaybackEngine();
 
+    }
+
+    @Override
+    public String getDescription() {
+        return "Removed track " + trackPane + " at index " + index;
     }
 }

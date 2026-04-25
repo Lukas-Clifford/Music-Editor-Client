@@ -40,4 +40,9 @@ public class MoveSelectionCommand extends EditorCommand{
         services.playbackService().reloadPlaybackEngine();
 
     }
+
+    @Override
+    public String getDescription() {
+        return "Moved " + this.clipPanes + " by " + this.seconds + " seconds";
+    }
 }

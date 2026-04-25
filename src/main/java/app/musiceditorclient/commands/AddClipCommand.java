@@ -48,4 +48,9 @@ public class AddClipCommand extends EditorCommand{
 
 
     }
+
+    @Override
+    public String getDescription() {
+        return this.file.getName() + " added at " + this.clipStartingPos;
+    }
 }

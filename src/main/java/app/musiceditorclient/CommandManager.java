@@ -2,6 +2,8 @@ package app.musiceditorclient;
 
 import app.musiceditorclient.commands.Command;
 import app.musiceditorclient.commands.EditorCommand;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.util.Stack;
 
@@ -11,6 +13,8 @@ public class CommandManager {
 
     private final EditorContext context;
     private final EditorServices services;
+
+    private final ObservableList<String> actionLog = FXCollections.observableArrayList();
 
     public CommandManager(EditorContext context, EditorServices services) {
         this.context = context;
@@ -25,6 +29,8 @@ public class CommandManager {
         command.execute();
         undoStack.push(command);
         redoStack.clear();
+
+        actionLog.addFirst("Execute: " + command.getDescription());
     }
 
     public void undo() {
@@ -32,6 +38,8 @@ public class CommandManager {
             Command command = undoStack.pop();
             command.undo();
             redoStack.push(command);
+
+            actionLog.addFirst("Undo: " + command.getDescription());
         }
     }
 
@@ -40,8 +48,12 @@ public class CommandManager {
             Command command = redoStack.pop();
             command.execute();
             undoStack.push(command);
+
+            actionLog.addFirst("Redo: " + command.getDescription());
         }
     }
 
-
+    public ObservableList<String> getActionLog() {
+        return actionLog;
+    }
 }

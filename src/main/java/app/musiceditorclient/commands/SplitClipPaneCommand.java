@@ -15,6 +15,7 @@ public class SplitClipPaneCommand extends EditorCommand {
     private ClipPane frontClipPane;
     private ClipPane backClipPane;
     private double splittingPoint = -1;
+    private int splittingMs;
 
     public SplitClipPaneCommand(Event event) {
         super(event);
@@ -32,7 +33,7 @@ public class SplitClipPaneCommand extends EditorCommand {
             splittingPoint = originalClipPane.getLastMouseX();
 
         // Width = ZoomFactor * msLength -> l = w/z
-        int splittingMs = (int) (splittingPoint/ context.ui().zoomFactorProperty().get());
+        splittingMs = (int) (splittingPoint/ context.ui().zoomFactorProperty().get());
 
         File wavFile = originalClipPane.getAudioClip().getWavFile();
         int timelineMsPosition = originalClipPane.getAudioClip().getTimelineMsPosition();
@@ -65,5 +66,11 @@ public class SplitClipPaneCommand extends EditorCommand {
 
         services.playbackService().reloadPlaybackEngine();
 
+    }
+
+    @Override
+    public String getDescription() {
+        return "Split " + this.originalClipPane.getAudioClip().getWavFile() + " at " +
+                this.originalClipPane.getAudioClip().getTimelineMsPosition() + " into two at " + this.splittingMs;
     }
 }

@@ -39,4 +39,9 @@ public class MoveTrackUpCommand extends EditorCommand{
 
         services.playbackService().reloadPlaybackEngine();
     }
+
+    @Override
+    public String getDescription() {
+        return "Moved track " + this.trackPane + " up by one";
+    }
 }

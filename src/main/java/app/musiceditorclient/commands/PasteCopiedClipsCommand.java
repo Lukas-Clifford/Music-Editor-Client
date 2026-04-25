@@ -65,4 +65,9 @@ public class PasteCopiedClipsCommand extends EditorCommand{
 
 
     }
+
+    @Override
+    public String getDescription() {
+        return "Pasted " + copiedClipPanes + " at " + this.startMs/1000;
+    }
 }

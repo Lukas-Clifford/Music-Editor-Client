@@ -64,4 +64,9 @@ public class TrimClipCommand extends EditorCommand{
         services.playbackService().reloadPlaybackEngine();
 
     }
+
+    @Override
+    public String getDescription() {
+        return "Trimmed clip " + this.values.frontMs() + " seconds from the frond and " + this.values.backMs() + " from the back";
+    }
 }

@@ -29,6 +29,7 @@ public class MainController extends EventController {
         setupTableView();
         setupTrackPanesEvents();
         setupSelectionContextMenu();
+        setupLogListView();
 
         context.playback().setPlaybackEngine(new PlaybackEngine());
         context.ui().getTimelineSeekerPane().seekerPosition.bind(context.playback().getPlaybackEngine().seeker);
@@ -43,6 +44,10 @@ public class MainController extends EventController {
         tracksTableView.refresh();
         services.playbackService().reloadPlaybackEngine();
         services.treeSampleService().restoreSampleTreeViews(samplesSplitPane);
+    }
+
+    private void setupLogListView() {
+        logListView.setItems(commandManager.getActionLog());
     }
 
     private void setupTableView() {

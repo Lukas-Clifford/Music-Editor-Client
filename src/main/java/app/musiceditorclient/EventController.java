@@ -13,6 +13,7 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public abstract class EventController {
@@ -26,6 +27,7 @@ public abstract class EventController {
     @FXML protected Button addTreeViewButton;
     @FXML protected SplitPane samplesSplitPane;
     @FXML protected Button selectionToolButton;
+    @FXML protected ListView<String> logListView;
 
     protected final EditorContext context;
     protected final EditorServices services;

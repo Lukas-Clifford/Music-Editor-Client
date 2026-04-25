@@ -40,4 +40,10 @@ public class RemoveClipCommand extends EditorCommand {
         services.playbackService().reloadPlaybackEngine();
 
     }
+
+    @Override
+    public String getDescription() {
+        return "Removed " + this.clipPane.getAudioClip().getWavFile().getName() + " at " + this.clipPane.getAudioClip().getTimelineMsPosition();
+
+    }
 }
