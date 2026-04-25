@@ -28,11 +28,13 @@ public abstract class EventController {
     @FXML protected Button selectionToolButton;
 
     protected final EditorContext context;
-    protected final EditorServices services ;
+    protected final EditorServices services;
+    protected final CommandManager commandManager;
 
-    protected EventController(EditorContext context, EditorServices services) {
+    protected EventController(EditorContext context, EditorServices services, CommandManager commandManager) {
         this.context = context;
         this.services = services;
+        this.commandManager = commandManager;
     }
 
     protected void stopPlayback() {

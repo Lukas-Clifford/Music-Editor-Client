@@ -1,17 +1,15 @@
 package app.musiceditorclient;
 
+import app.musiceditorclient.commands.*;
 import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.models.RecursiveClipDialogResult;
-import app.musiceditorclient.models.Track;
 import app.musiceditorclient.models.TrimClipDialogResult;
 import app.musiceditorclient.view.ClipPane;
 import app.musiceditorclient.view.TimelineSeekerPane;
 import app.musiceditorclient.view.TrackPane;
-import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -22,8 +20,8 @@ import java.util.Optional;
 
 public class MainController extends EventController {
 
-    public MainController(EditorContext context, EditorServices services) {
-        super(context, services);
+    public MainController(EditorContext context, EditorServices services, CommandManager commandManager) {
+        super(context, services, commandManager);
     }
 
     @FXML
@@ -79,7 +77,8 @@ public class MainController extends EventController {
                 this::onAddClip,
                 this::onAddReiterativeClip,
                 this::onMoveTrackUp,
-                this::onMoveTrackDown
+                this::onMoveTrackDown,
+                this::onRemoveClipPane
         );
 
 
@@ -89,48 +88,28 @@ public class MainController extends EventController {
         services.selectionService().setupSelectionContextMenu(
                 event -> {
                     if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
                         double seconds = services.dialogService().getSecondsToMoveSelection();
-                        services.selectionService().moveSelectedClips(seconds);
-                        services.playbackService().reloadPlaybackEngine();
+                        commandManager.executeCommand(new MoveSelectionCommand(event, seconds));
                     }
                 }, event -> {
                     if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
                         double seconds = services.dialogService().getSecondsToMoveSelection();
-                        services.selectionService().moveToSecondsSelectedClips(seconds);
-                        services.playbackService().reloadPlaybackEngine();
+                        commandManager.executeCommand(new MoveSelectionToPositionCommand(event, seconds));
                     }
                 }, event -> {
                     if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
-                        services.selectionService().removeSelectedClips();
-                        services.selectionService().clearSelection();
-                        services.playbackService().reloadPlaybackEngine();
+                        commandManager.executeCommand(new RemoveSelectionCommand(event));
                     }
                 }, event -> {
                     if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
                         services.selectionService().copySelectedClips();
-                        services.playbackService().reloadPlaybackEngine();
                     }
                 }
         );
     }
 
     public void onPasteCopiedClips(ActionEvent event) {
-        if (!context.selection().getSelectedClips().isEmpty()) {
-            services.playbackService().stopPlaybackForEdit();
-
-            TrackPane trackPane = ((TrackPane) event.getSource());
-            int startMs = services.trackService().calculateClipStartMs(trackPane);
-            services.selectionService().pasteClipPanes(
-                    startMs, context.selection().getCopiedClips(),
-                    trackPane
-            );
-
-            services.playbackService().reloadPlaybackEngine();
-        }
+        commandManager.executeCommand(new PasteCopiedClipsCommand(event));
     }
 
     public void onClipSelection(ActionEvent event) {
@@ -141,6 +120,7 @@ public class MainController extends EventController {
         services.playbackService().pausePlayback();
         services.selectionService().showSelectionContextMenu(event, ((Node) event.getSource()));
     }
+
     public void onLeftClickWhileFileSelected(ActionEvent event) {
 
         if(context.selection().getSelectedFile() != null) {
@@ -151,30 +131,15 @@ public class MainController extends EventController {
 
             services.playbackService().reloadPlaybackEngine();
         }
+
     }
 
     public void onMoveTrackUp(ActionEvent event) {
-        services.playbackService().stopPlaybackForEdit();
-        TrackPane trackPane = ((TrackPane) event.getSource());
-        int index = context.project().getTrackPanes().indexOf(trackPane);
-        if (index != 0) {
-            context.project().getTrackPanes().remove(trackPane);
-            context.project().getTrackPanes().add(index-1, trackPane);
-            tracksTableView.refresh();
-        }
-        services.playbackService().reloadPlaybackEngine();
+        commandManager.executeCommand(new MoveTrackUpCommand(event, tracksTableView));
     }
 
     public void onMoveTrackDown(ActionEvent event) {
-        services.playbackService().stopPlaybackForEdit();
-        TrackPane trackPane = ((TrackPane) event.getSource());
-        int index = context.project().getTrackPanes().indexOf(trackPane);
-        if (index != context.project().getTrackPanes().size()-1) {
-            context.project().getTrackPanes().remove(trackPane);
-            context.project().getTrackPanes().add(index+1, trackPane);
-            tracksTableView.refresh();
-        }
-        services.playbackService().reloadPlaybackEngine();
+        commandManager.executeCommand(new MoveTrackDownCommand(event, tracksTableView));
     }
 
     public void onMuteTrack(ActionEvent event) {
@@ -184,47 +149,33 @@ public class MainController extends EventController {
     }
 
     public void onRemoveTrack(ActionEvent event) {
-        services.playbackService().stopPlaybackForEdit();
-        context.project().getTrackPanes().remove((TrackPane) event.getSource());
-        services.playbackService().reloadPlaybackEngine();
+        commandManager.executeCommand(new RemoveTrackCommand(event));
     }
 
     public void onSplitClipPane(ActionEvent event) {
-        services.playbackService().stopPlaybackForEdit();
-        services.trackService().splitClipPane(
-                ((TrackPane) event.getSource()),
-                ((ClipPane) event.getTarget())
-        );
-        services.playbackService().reloadPlaybackEngine();
+        commandManager.executeCommand(new SplitClipPaneCommand(event));
     }
-    public void onTrimClip(ActionEvent event) {
 
-        services.playbackService().stopPlaybackForEdit();
+    public void onTrimClip(ActionEvent event) {
 
         Optional<TrimClipDialogResult> dialogResult = services.dialogService().showTrimClipDialog();
         if (dialogResult.isEmpty()) return;
         TrimClipDialogResult values = dialogResult.get();
 
-        services.trackService().trimClip(((ClipPane) event.getSource()), values);
+        commandManager.executeCommand(new TrimClipCommand(event, values));
 
-        services.playbackService().reloadPlaybackEngine();
     }
 
     public void onAddClip(ActionEvent event) {
-        services.playbackService().stopPlaybackForEdit();
 
-        File file = services.dialogService().selectSample(tracksTableView.getScene().getWindow());
+        File file = services.dialogService().selectSample( ( (TrackPane) event.getSource() ).getTimeLinePane().getScene().getWindow() );
         if (file == null) return;
+        int clipStartingPos = services.trackService().calculateClipStartMs( (TrackPane) event.getSource() );
+        commandManager.executeCommand(new AddClipCommand(event, file, clipStartingPos));
 
-        int startMs = services.trackService().calculateClipStartMs(((TrackPane) event.getSource()));
-
-        ((TrackPane) event.getSource()).addAudioClip(new Clip(file, startMs));
-
-        services.playbackService().reloadPlaybackEngine();
     }
 
     public void onAddReiterativeClip(ActionEvent event) {
-        services.playbackService().stopPlaybackForEdit();
 
         File file = services.dialogService().selectSample(tracksTableView.getScene().getWindow());
         if (file == null) return;
@@ -233,11 +184,12 @@ public class MainController extends EventController {
         if (dialogResult.isEmpty()) return;
         RecursiveClipDialogResult values = dialogResult.get();
 
-        services.trackService().addReiterativeClip(((TrackPane) event.getSource()), file, values);
+        commandManager.executeCommand(new AddReiterativeClipCommand(event, file, values));
 
-        services.playbackService().reloadPlaybackEngine();
 
     }
-
+    public void onRemoveClipPane(ActionEvent event) {
+        commandManager.executeCommand(new RemoveClipCommand(event));
+   }
 
 }

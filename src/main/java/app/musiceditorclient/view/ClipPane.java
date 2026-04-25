@@ -18,6 +18,7 @@ import javafx.scene.layout.Pane;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.Optional;
 
 public class ClipPane extends Pane implements Serializable, Comparable<ClipPane> {
@@ -37,6 +38,7 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
     private transient EventHandler<ActionEvent> onTrimAction;
     private transient EventHandler<ActionEvent> onRemoveAction;
     private transient EventHandler<ActionEvent> onSplitAction;
+    private transient TrackPane trackPane;
 
     private transient BooleanProperty selectionEnabledProperty = new SimpleBooleanProperty(false);
     private transient EventHandler<ActionEvent> onSelectionAction;
@@ -105,21 +107,17 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
 
         MenuItem trimItem = new MenuItem("Trim");
         trimItem.setOnAction(event -> {
-            if (onTrimAction != null) onTrimAction.handle(new ActionEvent(this, null));
+            if (onTrimAction != null) onTrimAction.handle(new ActionEvent(trackPane, this));
         });
 
         MenuItem removeItem = new MenuItem("Delete");
         removeItem.setOnAction(event -> {
-            if (onRemoveAction != null) {
-                onRemoveAction.handle(new ActionEvent(this, null));
-            }
+            if (onRemoveAction != null) onRemoveAction.handle(new ActionEvent(trackPane, this));
         });
 
         MenuItem splitItem = new MenuItem("Split");
         splitItem.setOnAction(event -> {
-            if (onSplitAction != null) {
-                onSplitAction.handle(new ActionEvent(this, null));
-            }
+            if (onSplitAction != null) onSplitAction.handle(new ActionEvent(trackPane, this));
         });
 
 
@@ -244,8 +242,27 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
         return Double.compare(this.audioClip.getTimelineMsPosition(), o.audioClip.getTimelineMsPosition());
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        ClipPane clipPane = (ClipPane) o;
+        return Objects.equals(audioClip, clipPane.audioClip) && Objects.equals(clipNameLabel, clipPane.clipNameLabel);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(audioClip, clipNameLabel);
+    }
 
     public double getLastMouseX() {
         return lastMouseX;
+    }
+
+    public void setTrackPane(TrackPane trackPane) {
+        this.trackPane = trackPane;
+    }
+
+    public TrackPane getTrackPane() {
+        return trackPane;
     }
 }

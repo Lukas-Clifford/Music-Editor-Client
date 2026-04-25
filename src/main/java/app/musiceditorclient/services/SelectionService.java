@@ -47,67 +47,9 @@ public class SelectionService {
 
     }
 
-    public void moveSelectedClips(double seconds) {
-        if (seconds < 0) return;
-
-        context.selection().getSelectedClips().forEach(clipPane ->
-                clipPane.setClipStartPosition(
-                        clipPane.getAudioClip().getTimelineMsPosition() + (int) (seconds * 1000)
-                )
-        );
-    }
-
-    public void moveToSecondsSelectedClips(double seconds) {
-        if (seconds < 0) return;
-
-        int offset = context.selection().getSelectedClips()
-                .stream()
-                .sorted()
-                .toList()
-                .getFirst()
-                .getAudioClip()
-                .getTimelineMsPosition() - (int) (seconds * 1000);
-
-        context.selection().getSelectedClips().forEach(clipPane ->
-                clipPane.setClipStartPosition(clipPane.getAudioClip().getTimelineMsPosition() - offset)
-        );
-    }
-
-    public void removeSelectedClips() {
-
-            context.selection().getSelectedClips().forEach(clipPane ->
-                    context.project().getTrackPanes().forEach(trackPane -> {
-                        if (trackPane.getClipPanes().contains(clipPane)) trackPane.removeAudioClip(clipPane);
-                    })
-            );
-
-    }
 
     public void copySelectedClips() {
         context.selection().getCopiedClips().addAll(context.selection().getSelectedClips());
-    }
-
-
-
-    public void pasteClipPanes(int startMs, List<ClipPane> clipPanes, TrackPane targetTrackPane) {
-
-        int offset = context.selection().getSelectedClips()
-                .stream()
-                .sorted()
-                .toList()
-                .getFirst()
-                .getAudioClip()
-                .getTimelineMsPosition() - startMs;
-
-
-        clipPanes.stream().sorted().forEach(clipPane -> {
-            Clip pastedClip = new Clip(
-                    clipPane.getAudioClip().getWavFile(),
-                    clipPane.getAudioClip().getTimelineMsPosition() - offset
-            );
-            targetTrackPane.addAudioClip(pastedClip);
-        });
-
     }
 
 

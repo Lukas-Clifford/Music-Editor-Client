@@ -18,6 +18,7 @@ public class Clip implements Comparable<Clip>, Serializable {
     private int length = 0;
     private transient SimpleIntegerProperty audioStartMs = new SimpleIntegerProperty(0);
     private int audioStartMsValue = 0;
+    private boolean isTrimmed = false;
 
     public Clip(File wavFile, int timelineStartSample) {
         this.wavFile = wavFile;
@@ -81,11 +82,13 @@ public class Clip implements Comparable<Clip>, Serializable {
     }
 
     public int getLength() {
+        if (isTrimmed) return this.length;
         return FfprobeService.getFileLength(wavFile);
     }
 
     public void setLength(int length) {
         this.length = length;
+        this.isTrimmed = true;
     }
 
     public int getEndPosition() {

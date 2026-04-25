@@ -33,6 +33,7 @@ public class TrackService {
     private EventHandler<ActionEvent> onAddReiterativeClipEventHandler = null;
     private EventHandler<ActionEvent> onMoveTrackUpEventHandler = null;
     private EventHandler<ActionEvent> onMoveTrackDownClipEventHandler = null;
+    private EventHandler<ActionEvent> onRemoveClipEventHandler = null;
 
 
     public TrackService(EditorContext context) {
@@ -51,7 +52,8 @@ public class TrackService {
         EventHandler<ActionEvent> onAddClipEventHandler,
         EventHandler<ActionEvent> onAddReiterativeClipEventHandler,
         EventHandler<ActionEvent> onMoveTrackUpEventHandler,
-        EventHandler<ActionEvent> onMoveTrackDownClipEventHandler
+        EventHandler<ActionEvent> onMoveTrackDownClipEventHandler,
+        EventHandler<ActionEvent> onRemoveClipEventHandler
     ) {
 
         this.onPasteCopiedClipsEventHandler = onPasteCopiedClipsEventHandler;
@@ -66,6 +68,7 @@ public class TrackService {
         this.onAddReiterativeClipEventHandler = onAddReiterativeClipEventHandler;
         this.onMoveTrackUpEventHandler = onMoveTrackUpEventHandler;
         this.onMoveTrackDownClipEventHandler = onMoveTrackDownClipEventHandler;
+        this.onRemoveClipEventHandler = onRemoveClipEventHandler;
     }
 
     public void setupTrackHeaderContextMenu(EventHandler<ActionEvent> onAddTrack) {
@@ -99,7 +102,9 @@ public class TrackService {
         trackPane.setOnMoveTrackUp(onMoveTrackUpEventHandler);
         trackPane.setOnMoveTrackDown(onMoveTrackDownClipEventHandler);
         trackPane.setOnMuteTrack(onMuteTrackEventHandler);
+        trackPane.setOnRemoveClip(onRemoveClipEventHandler);
 
+        trackPane.getClipPanes().forEach(trackPane::registerClipPaneHandlers);
 
         trackPane.bindZoomFactor(context.ui().zoomFactorProperty());
         trackPane.bindClipStartOffset(context.ui().clipStartOffsetProperty());
@@ -107,66 +112,5 @@ public class TrackService {
     }
 
 
-    public void splitClipPane(TrackPane trackPane, ClipPane clipPane) {
-
-        double splittingPoint = clipPane.getLastMouseX();
-        // Width = ZoomFactor * msLength -> l = w/z
-        int splittingMs = (int) (splittingPoint/ context.ui().zoomFactorProperty().get());
-
-        File wavFile = clipPane.getAudioClip().getWavFile();
-        int timelineMsPosition = clipPane.getAudioClip().getTimelineMsPosition();
-
-        Clip frontPartClip = new Clip(wavFile, timelineMsPosition);
-        frontPartClip.setLength(splittingMs);
-
-        Clip backPartClip = new Clip(wavFile, timelineMsPosition + splittingMs);
-        backPartClip.setLength(clipPane.getAudioClip().getLength()-splittingMs);
-
-        trackPane.addAudioClip(frontPartClip);
-        trackPane.addAudioClip(backPartClip);
-
-        trackPane.removeAudioClip(clipPane);
-
-    }
-
-    public void trimClip(ClipPane clipPane, TrimClipDialogResult values) {
-
-        try {
-
-            Clip clip = clipPane.getAudioClip();
-            int oldLength = clip.getLength();
-            int oldAudioStart = clip.getAudioStartMs();
-            int oldTimeLineMsPos = clip.getTimelineMsPosition();
-
-            int newAudioStart = Math.max(0, oldAudioStart + values.frontMs());
-            int newLength = Math.max(0, oldLength - values.frontMs() - values.backMs());
-
-            clip.setAudioStartMs(newAudioStart);
-            clip.setTimelineMsPosition(oldTimeLineMsPos + values.frontMs());
-            clip.setLength(newLength);
-
-            clipPane.setClipNameLabel(clip.getWavFile().getName() + " : " + clip.getLength() + "ms");
-            clipPane.refreshSize();
-
-        } catch (NumberFormatException ignored) {
-            // Ignored
-        }
-    }
-
-
-
-    public void addReiterativeClip(TrackPane trackPane, File file, RecursiveClipDialogResult values) {
-
-        try {
-            int startingMs = (int) (values.startingSeconds() * 1000f);
-            int stepMs = (int) (values.secondsBetweenRepetition() * 1000f);
-
-            for (int i = 0; i < values.numberOfRepetitions(); i++) {
-                trackPane.addAudioClip(new Clip(file, startingMs + (i * stepMs)));
-            }
-        } catch (NumberFormatException ignored) {
-            // Ignored
-        }
-    }
 
 }

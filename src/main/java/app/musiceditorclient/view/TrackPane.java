@@ -50,6 +50,7 @@ public class TrackPane implements Serializable {
     private transient EventHandler<MouseEvent> onRightClickSelection;
     private transient EventHandler<ActionEvent> onPasteCopiedClips;
     private transient EventHandler<ActionEvent> onSplitClip;
+    private transient EventHandler<ActionEvent> onRemoveClip;
     private transient EventHandler<ActionEvent> onMoveTrackUp;
     private transient EventHandler<ActionEvent> onMoveTrackDown;
     private transient EventHandler<ActionEvent> onMuteTrack;
@@ -228,6 +229,10 @@ public class TrackPane implements Serializable {
         this.onTrimAction = onTrimAction;
     }
 
+    public void setOnRemoveClip(EventHandler<ActionEvent> onRemoveClip) {
+        this.onRemoveClip = onRemoveClip;
+    }
+
     public void setOnClipSelection(EventHandler<ActionEvent> onClipSelection) {
         this.onClipSelection = onClipSelection;
         for (ClipPane clipPane : clipPanes) {
@@ -314,17 +319,23 @@ public class TrackPane implements Serializable {
 
     public void addAudioClip(Clip clip) {
         ClipPane clipPane = new ClipPane(clip, zoomFactor);
-        registerClipPaneHandlers(clipPane);
+        addClipPane(clipPane);
+    }
 
+    public void addClipPane(ClipPane clipPane) {
+        if (clipPane == null) {
+            return;
+        }
+
+        clipPane.setTrackPane(this);
+        registerClipPaneHandlers(clipPane);
         clipPanes.add(clipPane);
-        track.addClip(clip);
 
         if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
             clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);
         }
         clipPane.setOnSelectionAction(onClipSelection);
         clipPane.setOnRightClickSelectionAction(onRightClickSelection);
-
 
         if (timeLinePane != null) {
             clipPane.prefHeightProperty().bind(timeLinePane.heightProperty());
@@ -334,26 +345,20 @@ public class TrackPane implements Serializable {
 
         if (zoomFactor != null && clipStartOffset != null) {
             clipPane.layoutXProperty().bind(
-                    clip.getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset)
+                    clipPane.getAudioClip().getTimelineMsPositionProperty().multiply(zoomFactor).subtract(clipStartOffset)
             );
         }
         timeLinePane.getChildren().add(clipPane);
+        track.addClip(clipPane.getAudioClip());
     }
 
-    private void registerClipPaneHandlers(ClipPane clipPane) {
-        clipPane.setOnRemoveAction(event -> removeAudioClip(clipPane));
-        clipPane.setOnTrimAction(event -> {
-            if (onTrimAction != null) {
-                onTrimAction.handle(new javafx.event.ActionEvent(clipPane, null));
-            }
-        });
+    public void registerClipPaneHandlers(ClipPane clipPane) {
+        clipPane.setTrackPane(this);
+        clipPane.setOnRemoveAction(onRemoveClip);
+        clipPane.setOnTrimAction(onTrimAction);
         clipPane.setOnSelectionAction(onClipSelection);
         clipPane.setOnRightClickSelectionAction(onRightClickSelection);
-        clipPane.setOnSplitAction(event -> {
-            if (onSplitClip != null) {
-                onSplitClip.handle(new javafx.event.ActionEvent(this, clipPane));
-            }
-        });
+        clipPane.setOnSplitAction(onSplitClip);
 
         if (clipPane.selectionEnabledPropertyProperty() != null && this.selectionToolEnabledProperty != null) {
             clipPane.selectionEnabledPropertyProperty().bind(this.selectionToolEnabledProperty);

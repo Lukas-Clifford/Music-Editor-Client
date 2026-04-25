@@ -13,11 +13,12 @@ public class MainApplication extends Application {
 
     private final EditorContext context = new EditorContext();
     private final EditorServices services = new EditorServices(context);
+    private final CommandManager commandManager = new CommandManager(context, services);
 
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(MainApplication.class.getResource("main-view.fxml"));
-        MainController controller = new MainController(context, services);
+        MainController controller = new MainController(context, services, commandManager);
         fxmlLoader.setController(controller);
 
         Scene scene = new Scene(fxmlLoader.load());
@@ -71,6 +72,11 @@ public class MainApplication extends Application {
             if (event.getCode() == KeyCode.DIGIT4)
                     services.playbackService().goToFrame(
                             context.playback().getPlaybackEngine().getPausedFrame()+11025);
+
+            if (event.isControlDown() && event.getCode() == KeyCode.Z)
+                commandManager.undo();
+            if (event.isControlDown() && event.getCode() == KeyCode.Y)
+                commandManager.redo();
 
         });
 
