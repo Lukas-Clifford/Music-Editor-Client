@@ -124,12 +124,9 @@ public class MainController extends EventController {
     public void onLeftClickWhileFileSelected(ActionEvent event) {
 
         if(context.selection().getSelectedFile() != null) {
-            services.playbackService().stopPlaybackForEdit();
-
             int startMs = services.trackService().calculateClipStartMs(((TrackPane) event.getSource()));
-            ((TrackPane) event.getSource()).addAudioClip(new Clip(context.selection().getSelectedFile(), startMs));
+            commandManager.executeCommand(new AddClipCommand(event, context.selection().getSelectedFile(), startMs));
 
-            services.playbackService().reloadPlaybackEngine();
         }
 
     }
