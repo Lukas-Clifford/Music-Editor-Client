@@ -23,7 +23,7 @@ public class Clip implements Comparable<Clip>, Serializable {
         this.wavFile = wavFile;
         this.timelineMsPositionValue = timelineStartSample;
         this.timelineMsPosition.set(timelineStartSample);
-        this.length = FfprobeService.getFileLength(wavFile);
+        this.length = this.getLength();
         this.audioStartMsValue = 0;
         this.audioStartMs.set(0);
 
@@ -81,7 +81,7 @@ public class Clip implements Comparable<Clip>, Serializable {
     }
 
     public int getLength() {
-        return length;
+        return FfprobeService.getFileLength(wavFile);
     }
 
     public void setLength(int length) {
@@ -89,7 +89,7 @@ public class Clip implements Comparable<Clip>, Serializable {
     }
 
     public int getEndPosition() {
-        return this.timelineMsPosition.get() + this.length;
+        return this.timelineMsPositionValue + this.getLength();
     }
 
     public int getAudioStartMs() {
@@ -111,6 +111,7 @@ public class Clip implements Comparable<Clip>, Serializable {
     @Serial
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
+        this.length = getLength();
         this.timelineMsPosition = new SimpleIntegerProperty(timelineMsPositionValue);
         this.audioStartMs = new SimpleIntegerProperty(audioStartMsValue);
     }

@@ -7,6 +7,7 @@ import app.musiceditorclient.models.TrimClipDialogResult;
 import app.musiceditorclient.view.ClipPane;
 import app.musiceditorclient.view.TimelineSeekerPane;
 import app.musiceditorclient.view.TrackPane;
+import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
@@ -29,42 +30,12 @@ public class MainController extends EventController {
     public void initialize() {
         setupTableView();
         setupTrackPanesEvents();
-
-        services.trackService().setupTrackHeaderContextMenu(event -> onAddNewTrack());
-        services.selectionService().setupSelectionContextMenu(
-                event -> {
-                    if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
-                        double seconds = services.dialogService().getSecondsToMoveSelection();
-                        services.selectionService().moveSelectedClips(seconds);
-                        services.playbackService().reloadPlaybackEngine();
-                    }
-                },event -> {
-                    if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
-                        double seconds = services.dialogService().getSecondsToMoveSelection();
-                        services.selectionService().moveToSecondsSelectedClips(seconds);
-                        services.playbackService().reloadPlaybackEngine();
-                    }
-                },event -> {
-                    if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
-                        services.selectionService().removeSelectedClips();
-                        services.selectionService().clearSelection();
-                        services.playbackService().reloadPlaybackEngine();
-                    }
-                },event -> {
-                    if (!context.selection().getSelectedClips().isEmpty()) {
-                        stopPlayback();
-                        services.selectionService().copySelectedClips();
-                        services.playbackService().reloadPlaybackEngine();
-                    }
-                }
-        );
+        setupSelectionContextMenu();
 
         context.playback().setPlaybackEngine(new PlaybackEngine());
         context.ui().getTimelineSeekerPane().seekerPosition.bind(context.playback().getPlaybackEngine().seeker);
         context.ui().getTimelineSeekerPane().bindSongLengthProperty(context.playback().getPlaybackEngine().songLengthProperty);
+        context.ui().getTimelineSeekerPane().bindStartOffsetProperty(context.ui().clipStartOffsetProperty());
         onAddNewTrack();
         onAddNewTrack();
 
@@ -112,6 +83,39 @@ public class MainController extends EventController {
         );
 
 
+    }
+
+    private void setupSelectionContextMenu() {
+        services.selectionService().setupSelectionContextMenu(
+                event -> {
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        stopPlayback();
+                        double seconds = services.dialogService().getSecondsToMoveSelection();
+                        services.selectionService().moveSelectedClips(seconds);
+                        services.playbackService().reloadPlaybackEngine();
+                    }
+                }, event -> {
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        stopPlayback();
+                        double seconds = services.dialogService().getSecondsToMoveSelection();
+                        services.selectionService().moveToSecondsSelectedClips(seconds);
+                        services.playbackService().reloadPlaybackEngine();
+                    }
+                }, event -> {
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        stopPlayback();
+                        services.selectionService().removeSelectedClips();
+                        services.selectionService().clearSelection();
+                        services.playbackService().reloadPlaybackEngine();
+                    }
+                }, event -> {
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        stopPlayback();
+                        services.selectionService().copySelectedClips();
+                        services.playbackService().reloadPlaybackEngine();
+                    }
+                }
+        );
     }
 
     public void onPasteCopiedClips(ActionEvent event) {

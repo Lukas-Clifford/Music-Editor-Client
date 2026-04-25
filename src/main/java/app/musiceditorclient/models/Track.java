@@ -10,7 +10,7 @@ public class Track implements Comparable<Track>, Serializable {
     private int length = 0;
 
     public Track(List<Clip> clips) {
-        this.clips = clips.stream().sorted().toList();
+        this.clips = new ArrayList<>(clips.stream().sorted().toList());
         this.length = (clips.isEmpty()) ? 0:clips.getLast().getEndPosition();
     }
 
@@ -28,7 +28,8 @@ public class Track implements Comparable<Track>, Serializable {
     }
 
     public int getLength() {
-        return length;
+        this.clips = new ArrayList<>(clips.stream().sorted().toList());
+        return (clips.isEmpty()) ? 0:clips.getLast().getEndPosition();
     }
 
     public void setLength(int length) {
@@ -37,7 +38,7 @@ public class Track implements Comparable<Track>, Serializable {
 
     public void addClip(Clip clip) {
         this.clips.add(clip);
-        this.length = clips.stream().sorted().toList().getLast().getEndPosition();
+        this.length = getLength();
     }
 
     public void removeClip(Clip clip){
@@ -46,7 +47,7 @@ public class Track implements Comparable<Track>, Serializable {
 
     @Override
     public int compareTo(Track o) {
-        return Integer.compare(this.length, o.length);
+        return Integer.compare(this.getLength(), o.getLength());
     }
 
     @Override

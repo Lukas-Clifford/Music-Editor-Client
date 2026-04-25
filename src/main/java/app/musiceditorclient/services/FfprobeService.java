@@ -36,7 +36,7 @@ public class FfprobeService {
 
             if (exit != 0)  throw new RuntimeException("ffprobe failed: " + output);
 
-            return Math.toIntExact(Math.round(Double.parseDouble(output) * 1000));
+            return (int) (Double.parseDouble(output) * 1000);
 
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);

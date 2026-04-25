@@ -19,22 +19,20 @@ public class PlaybackService {
         context.playback().setPlaybackRunning(true);
 
 
-
         context.playback().setPlaybackThread(new Thread(() -> {
             try {
-                context.playback().getPlaybackEngine().setPausedFrame((int) Math.round(context.playback().getPlaybackEngine().seeker.get() * 44.1));
                 context.playback().getPlaybackEngine().clearPauseRequest();
                 context.playback().getPlaybackEngine().play();
             } finally {
                 context.playback().setPlaybackRunning(false);
             }
         }));
+
         context.playback().getPlaybackThread().setDaemon(true);
         context.playback().getPlaybackThread().start();
     }
 
     public void pausePlayback() {
-        context.playback().getPlaybackEngine().setPausedFrame(context.playback().getPlaybackEngine().seeker.get() * 44);
         context.playback().getPlaybackEngine().requestPause();
 
     }
@@ -45,6 +43,7 @@ public class PlaybackService {
             if (!trackPane.isMuted())
                 context.playback().getPlaybackEngine().addTrack(trackPane.getTrack());
         }
+        context.playback().getPlaybackEngine().reloadSongLength();
     }
 
     public void stopPlaybackForEdit() {

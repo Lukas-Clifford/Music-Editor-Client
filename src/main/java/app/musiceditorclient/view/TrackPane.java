@@ -86,7 +86,6 @@ public class TrackPane implements Serializable {
 
         setupTimeLinePaneContextMenu();
         setupTimeLinePaneMouseEvents();
-        setupRulerPainting();
 
         setupControlPane();
 
@@ -152,7 +151,7 @@ public class TrackPane implements Serializable {
             boolean isSecond = ((int) ms) % 1000 == 0;
             line.setStartY(0);
             line.setEndY(isSecond ? 18 : 10);
-            line.setStroke(isSecond ? Color.DIMGRAY : Color.LIGHTGRAY);
+            line.setStroke(isSecond ? Color.CRIMSON : Color.BLACK);
             line.setStrokeWidth(isSecond ? 1.5 : 1.0);
 
             rulerPane.getChildren().add(line);
@@ -394,6 +393,7 @@ public class TrackPane implements Serializable {
                             .subtract(this.clipStartOffset)
             );
         }
+        setupRulerPainting();
     }
 
     public void bindZoomFactor(FloatProperty zoomFactor) {
