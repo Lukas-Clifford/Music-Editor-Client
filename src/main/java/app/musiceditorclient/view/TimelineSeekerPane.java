@@ -3,6 +3,7 @@ package app.musiceditorclient.view;
 import javafx.application.Platform;
 import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleFloatProperty;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.Pane;
@@ -38,6 +39,7 @@ public class TimelineSeekerPane extends Pane {
         seekerPosLabel = new Label(formatSeconds(seekerPosition.get()));
 
         container = new VBox(8,  seekerPosLabel,seekerProgressBar);
+        container.setPadding(new Insets(5));
         container.setLayoutX(0);
         container.setLayoutY(0);
 

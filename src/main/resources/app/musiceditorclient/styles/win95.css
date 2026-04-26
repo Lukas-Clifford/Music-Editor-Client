@@ -1,17 +1,25 @@
 .ClipPane {
     -fx-background-color: #D3D3D3;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-border-radius: 0;
     -fx-background-radius: 0;
 }
 
 .TrackPane {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-border-radius: 0;
     -fx-background-radius: 0;
+}
+
+.TrackPaneControl {
+    -fx-background-color: #C0C0C0;
+}
+
+.TrackPaneTimeLine {
+    -fx-background-color: #C0C0C0;
 }
 
 .TrackPane .pane,
@@ -42,8 +50,8 @@
 
 .menu-bar {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-padding: 2 4;
 }
 
@@ -64,8 +72,8 @@
 
 .context-menu {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-padding: 2;
 }
 
@@ -90,8 +98,8 @@
 .button {
     -fx-background-color: #C0C0C0;
     -fx-text-fill: #000000;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-padding: 1 6;
@@ -121,8 +129,8 @@
 .scroll-pane,
 .tab-pane {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-control-inner-background: #FFFFFF;
@@ -130,14 +138,14 @@
 
 .table-view .column-header-background {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 0 0 2 0;
+    -fx-border-color: #808080;
+    -fx-border-width: 0 0 1 0;
 }
 
 .table-view .column-header,
 .table-view .filler {
     -fx-background-color: #3399FF;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
+    -fx-border-color: #808080;
     -fx-border-width: 0 1 1 0;
 }
 
@@ -159,14 +167,14 @@
 
 .tab-pane .tab-header-area {
     -fx-background-color: #3399FF;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 0 0 2 0;
+    -fx-border-color: #808080;
+    -fx-border-width: 0 0 1 0;
 }
 
 .tab {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-padding: 4 10;
@@ -174,7 +182,7 @@
 
 .tab:selected {
     -fx-background-color: #ECECEC;
-    -fx-border-color: #3399FF #FFFFFF #FFFFFF #3399FF;
+    -fx-border-color: #3399FF;
 }
 
 .tab .tab-label {
@@ -199,8 +207,8 @@
 .combo-box-base,
 .choice-box {
     -fx-background-color: #FFFFFF;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-text-fill: #000000;
@@ -222,8 +230,8 @@
 .check-box .box,
 .radio-button .radio {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
 }
@@ -235,8 +243,8 @@
 
 .progress-bar {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #404040 #FFFFFF #FFFFFF #404040;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
     -fx-padding: 1;
@@ -245,7 +253,7 @@
 
 .progress-bar .track {
     -fx-background-color: #FFFFFF;
-    -fx-border-color: #808080 #FFFFFF #FFFFFF #808080;
+    -fx-border-color: #808080;
     -fx-border-width: 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
@@ -259,8 +267,8 @@
 
 .scroll-bar .thumb {
     -fx-background-color: #C0C0C0;
-    -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-    -fx-border-width: 2;
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
 }
 
 .scroll-bar .track {
@@ -277,10 +285,9 @@
 
 .addTreeViewHBox {
     -fx-background-color: #C0C0C0;
-        -fx-border-color: #FFFFFF #404040 #404040 #FFFFFF;
-        -fx-border-width: 2;
-        -fx-background-radius: 0;
-        -fx-border-radius: 0;
-        -fx-padding: 4 10;
-
+    -fx-border-color: #808080;
+    -fx-border-width: 1;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-padding: 4 10;
 }

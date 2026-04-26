@@ -36,8 +36,10 @@ public class MainApplication extends Application {
         stage.setTitle("Music Editor");
         stage.setMaximized(true);
         stage.setFullScreen(false);
+        Font.loadFont(MainApplication.class.getResourceAsStream("styles/fonts/Seven-Segment.ttf"), 11);
         Font.loadFont(MainApplication.class.getResourceAsStream("styles/fonts/w95f.ttf"), 11);
-        scene.getStylesheets().add(Objects.requireNonNull(MainApplication.class.getResource("styles/style.css")).toExternalForm());
+//        System.out.println(font.getName());
+        scene.getStylesheets().add(Objects.requireNonNull(MainApplication.class.getResource("styles/studio.css")).toExternalForm());
         stage.setScene(scene);
 
         scene.setOnScroll(event -> {

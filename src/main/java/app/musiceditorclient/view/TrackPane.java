@@ -73,11 +73,24 @@ public class TrackPane implements Serializable {
         controlPane = new StackPane();
         timeLinePane = new Pane();
 
+        if (!controlPane.getStyleClass().contains("TrackPane")) {
+            controlPane.getStyleClass().add("TrackPane");
+        }
+        if (!controlPane.getStyleClass().contains("TrackPaneControl")) {
+            controlPane.getStyleClass().add("TrackPaneControl");
+        }
+
+        if (!timeLinePane.getStyleClass().contains("TrackPane")) {
+            timeLinePane.getStyleClass().add("TrackPane");
+        }
+        if (!timeLinePane.getStyleClass().contains("TrackPaneTimeLine")) {
+            timeLinePane.getStyleClass().add("TrackPaneTimeLine");
+        }
+
         if (zoomFactor != null) {
             timeLinePane.prefHeightProperty().bind(zoomFactor.multiply(100));
             timeLinePane.prefWidthProperty().bind(zoomFactor.multiply(600000));
         }
-        timeLinePane.setStyle("-fx-background-color:#EDE9E6;");
 
         rulerPane = new Pane();
         rulerPane.setMouseTransparent(true);
@@ -90,13 +103,6 @@ public class TrackPane implements Serializable {
         setupTimeLinePaneContextMenu();
         setupTimeLinePaneMouseEvents();
         setupControlPane();
-
-        if (!controlPane.getStyleClass().contains("TrackPane")) {
-            controlPane.getStyleClass().add("TrackPane");
-        }
-        if (!timeLinePane.getStyleClass().contains("TrackPane")) {
-            timeLinePane.getStyleClass().add("TrackPane");
-        }
     }
 
     private void setupControlPane() {
@@ -116,7 +122,6 @@ public class TrackPane implements Serializable {
         controlButtonsHBox.prefHeightProperty().bind(controlPane.prefHeightProperty());
 
         controlPane.getChildren().add(controlButtonsHBox);
-        controlPane.setStyle("-fx-background-color:EDE9E6;");
 
         muteButton.setOnAction(event -> {
             if (onMuteTrack != null) onMuteTrack.handle(new ActionEvent(this, null));
@@ -302,11 +307,14 @@ public class TrackPane implements Serializable {
 
     public void toggleMuted() {
         this.isMuted = !this.isMuted;
-        if (isMuted)
-            this.controlPane.setStyle("-fx-background-color:#EDE9E6;");
-        else
-            this.controlPane.setStyle("-fx-background-color:#5C4F4A;");
-
+        if (isMuted) {
+            this.controlPane.getStyleClass().remove("TrackPaneMuted");
+            if (!this.controlPane.getStyleClass().contains("TrackPaneControlMuted")) {
+                this.controlPane.getStyleClass().add("TrackPaneControlMuted");
+            }
+        } else {
+            this.controlPane.getStyleClass().remove("TrackPaneControlMuted");
+        }
     }
 
 
