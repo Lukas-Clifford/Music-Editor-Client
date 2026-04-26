@@ -10,6 +10,7 @@ public class EditorServices {
     private final SelectionService selectionService;
     private final TrackService trackService;
     private final TreeSampleService treeSampleService;
+    private final PreferencesService preferencesService;
 
     public EditorServices(EditorContext context) {
         dialogService               = new DialogService(context);
@@ -18,7 +19,7 @@ public class EditorServices {
         selectionService            = new SelectionService(context);
         trackService                =  new TrackService(context);
         treeSampleService           = new TreeSampleService(context);
-
+        preferencesService          = new PreferencesService(context);
     }
 
 
@@ -34,6 +35,5 @@ public class EditorServices {
 
     public TreeSampleService treeSampleService() { return treeSampleService; }
 
-
-
+    public PreferencesService preferencesService() { return preferencesService; }
 }

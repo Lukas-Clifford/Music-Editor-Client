@@ -143,31 +143,30 @@
                       <items>
                         <MenuItem mnemonicParsing="false" onAction="#onCreateNewProject" text="New" />
                         <MenuItem mnemonicParsing="false" onAction="#onOpenProject" text="Open…" />
-                        <Menu mnemonicParsing="false" text="Open Recent" />
                         <SeparatorMenuItem mnemonicParsing="false" />
-                        <MenuItem mnemonicParsing="false" text="Close" />
+                        <MenuItem mnemonicParsing="false" text="Close" onAction="#onCloseProject"/>
                         <MenuItem mnemonicParsing="false" onAction="#onSaveProject" text="Save" />
-                        <MenuItem mnemonicParsing="false" text="Save As…" />
+                        <MenuItem mnemonicParsing="false" text="Save As…" onAction="#onSaveAs"/>
                         <MenuItem mnemonicParsing="false" onAction="#onExportAudio" text="Export" />
                         <MenuItem mnemonicParsing="false" onAction="#onImportSamplePack" text="Import Sample Pack" />
                         <SeparatorMenuItem mnemonicParsing="false" />
-                        <MenuItem mnemonicParsing="false" text="Preferences…" />
+                        <MenuItem mnemonicParsing="false" onAction="#onOpenPreferences" text="Preferences…" />
                         <SeparatorMenuItem mnemonicParsing="false" />
-                        <MenuItem mnemonicParsing="false" text="Quit" />
+                        <MenuItem mnemonicParsing="false" onAction="#onQuit" text="Quit" />
                       </items>
                     </Menu>
                     <Menu mnemonicParsing="false" text="Edit">
                       <items>
-                        <MenuItem mnemonicParsing="false" text="Undo" />
-                        <MenuItem mnemonicParsing="false" text="Redo" />
+                        <MenuItem mnemonicParsing="false" text="Undo" onAction="#onUndo"/>
+                        <MenuItem mnemonicParsing="false" text="Redo" onAction="#onRedo"/>
                         <SeparatorMenuItem mnemonicParsing="false" />
-                        <MenuItem mnemonicParsing="false" text="Cut" />
-                        <MenuItem mnemonicParsing="false" text="Copy" />
-                        <MenuItem mnemonicParsing="false" text="Paste" />
-                        <MenuItem mnemonicParsing="false" text="Delete" />
+                        <MenuItem mnemonicParsing="false" text="Cut" onAction="#onCut"/>
+                        <MenuItem mnemonicParsing="false" text="Copy" onAction="#onCopy"/>
+                        <MenuItem mnemonicParsing="false" text="Paste" onAction="#onPaste"/>
+                        <MenuItem mnemonicParsing="false" text="Delete" onAction="#onDelete"/>
                         <SeparatorMenuItem mnemonicParsing="false" />
-                        <MenuItem mnemonicParsing="false" text="Select All" />
-                        <MenuItem mnemonicParsing="false" text="Unselect All" />
+                        <MenuItem mnemonicParsing="false" text="Select All" onAction="#onSelectAll"/>
+                        <MenuItem mnemonicParsing="false" text="Unselect All" onAction="#onUnselectAll"/>
                       </items>
                     </Menu>
                     <Menu mnemonicParsing="false" text="Help">

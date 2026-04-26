@@ -34,6 +34,7 @@ public class TrackService {
     private EventHandler<ActionEvent> onMoveTrackUpEventHandler = null;
     private EventHandler<ActionEvent> onMoveTrackDownClipEventHandler = null;
     private EventHandler<ActionEvent> onRemoveClipEventHandler = null;
+    private EventHandler<ActionEvent> onTrackSelectionEventHandler = null;
 
 
     public TrackService(EditorContext context) {
@@ -53,7 +54,8 @@ public class TrackService {
         EventHandler<ActionEvent> onAddReiterativeClipEventHandler,
         EventHandler<ActionEvent> onMoveTrackUpEventHandler,
         EventHandler<ActionEvent> onMoveTrackDownClipEventHandler,
-        EventHandler<ActionEvent> onRemoveClipEventHandler
+        EventHandler<ActionEvent> onRemoveClipEventHandler,
+        EventHandler<ActionEvent> onTrackSelectionEventHandler
     ) {
 
         this.onPasteCopiedClipsEventHandler = onPasteCopiedClipsEventHandler;
@@ -69,6 +71,7 @@ public class TrackService {
         this.onMoveTrackUpEventHandler = onMoveTrackUpEventHandler;
         this.onMoveTrackDownClipEventHandler = onMoveTrackDownClipEventHandler;
         this.onRemoveClipEventHandler = onRemoveClipEventHandler;
+        this.onTrackSelectionEventHandler = onTrackSelectionEventHandler;
     }
 
     public void setupTrackHeaderContextMenu(EventHandler<ActionEvent> onAddTrack) {
@@ -103,6 +106,7 @@ public class TrackService {
         trackPane.setOnMoveTrackDown(onMoveTrackDownClipEventHandler);
         trackPane.setOnMuteTrack(onMuteTrackEventHandler);
         trackPane.setOnRemoveClip(onRemoveClipEventHandler);
+        trackPane.setOnTrackSelectionAction(onTrackSelectionEventHandler);
 
         trackPane.getClipPanes().forEach(trackPane::registerClipPaneHandlers);
 

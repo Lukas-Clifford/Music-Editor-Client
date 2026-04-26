@@ -1,17 +1,18 @@
 package app.musiceditorclient.commands;
 
-import app.musiceditorclient.EditorContext;
-import app.musiceditorclient.EditorServices;
 import app.musiceditorclient.view.TrackPane;
 import javafx.event.Event;
+import javafx.scene.control.TableView;
 
 public class RemoveTrackCommand extends EditorCommand {
 
     private TrackPane trackPane;
     private int index;
+    private TableView<TrackPane> trackPaneTableView;
 
-    public RemoveTrackCommand(Event event) {
+    public RemoveTrackCommand(Event event, TableView<TrackPane> tracksTableView) {
         super(event);
+        this.trackPaneTableView = tracksTableView;
     }
 
     @Override
@@ -23,6 +24,7 @@ public class RemoveTrackCommand extends EditorCommand {
 
         context.project().getTrackPanes().remove(trackPane);
 
+        trackPaneTableView.refresh();
         services.playbackService().reloadPlaybackEngine();
     }
 
@@ -32,6 +34,7 @@ public class RemoveTrackCommand extends EditorCommand {
 
         context.project().getTrackPanes().add(trackPane);
 
+        trackPaneTableView.refresh();
         services.playbackService().reloadPlaybackEngine();
 
     }

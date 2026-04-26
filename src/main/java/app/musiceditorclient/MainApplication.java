@@ -1,13 +1,18 @@
 package app.musiceditorclient;
 
+import app.musiceditorclient.commands.*;
+import app.musiceditorclient.models.RecursiveClipDialogResult;
 import javafx.application.Application;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 public class MainApplication extends Application {
 
@@ -48,17 +53,78 @@ public class MainApplication extends Application {
         });
 
         scene.setOnKeyPressed(event -> {
-            if (event.isControlDown() && event.getCode() == KeyCode.S)
-                services.projectPersistenceService().saveProject();
 
-            if (event.isShiftDown() && event.getCode() == KeyCode.ESCAPE)
-                stage.close();
+            if (event.isControlDown()) {
+                if (event.getCode() == KeyCode.S)
+                    services.projectPersistenceService().saveProject();
 
-            if (event.getCode() == KeyCode.CONTROL)
-                services.selectionService().enableSelection();
+                if (event.getCode() == KeyCode.A && event.isShiftDown())
+                    services.selectionService().clearSelection();
 
-            if (event.isShiftDown() && event.isControlDown() && event.getCode() == KeyCode.A)
-                services.selectionService().clearSelection();
+
+                if (event.getCode() == KeyCode.X) {
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        services.selectionService().copySelectedClips();
+                        commandManager.executeCommand(new RemoveSelectionCommand(null));
+                    }
+                }
+
+                if (event.getCode() == KeyCode.C)
+                    services.selectionService().copySelectedClips();
+                if (event.getCode() == KeyCode.V && !context.selection().getCopiedClips().isEmpty()) {
+
+                    commandManager.executeCommand(new AddTrackCommand(null, controller.tracksTableView));
+                    int startMs = (int) (services.dialogService().getSecondsToPasteClips(
+                            context.selection().getCopiedClips().getFirst().getAudioClip().getTimelineMsPosition()
+                    ) * 1000);
+                    commandManager.executeCommand(
+                            new PasteCopiedClipsCommand(
+                                    new ActionEvent(context.project().getTrackPanes().getLast(), null),
+                                    startMs
+                            )
+                    );
+                }
+
+                if (event.getCode() == KeyCode.R) {
+
+                    File file = services.dialogService().selectSample(scene.getWindow());
+                    if (file == null) return;
+
+                    Optional<RecursiveClipDialogResult> dialogResult = services.dialogService().showRecursiveClipDialog();
+                    if (dialogResult.isEmpty()) return;
+                    RecursiveClipDialogResult values = dialogResult.get();
+
+                    commandManager.executeCommand(new AddTrackCommand(null, controller.tracksTableView));
+
+                    commandManager.executeCommand(new AddReiterativeClipCommand(
+                            new ActionEvent(context.project().getTrackPanes().getLast(), null),
+                            file, values));
+
+                }
+
+                if (event.getCode() == KeyCode.M) {
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        double seconds = services.dialogService().getSecondsToMoveSelection();
+                        commandManager.executeCommand(new MoveSelectionToPositionCommand(event, seconds));
+                    }
+                }
+
+
+                if (event.getCode() == KeyCode.Z)
+                    commandManager.undo();
+                if (event.getCode() == KeyCode.Y)
+                    commandManager.redo();
+
+            } else if (event.getCode() == KeyCode.M) {
+                if (!context.selection().getSelectedClips().isEmpty())  {
+                    double seconds = services.dialogService().getSecondsToMoveSelection();
+                    commandManager.executeCommand(new MoveSelectionCommand(event, seconds));
+                }
+            }
+
+
+             if (event.getCode() == KeyCode.DELETE)
+                commandManager.executeCommand(new RemoveSelectionCommand(null));
 
             if (event.getCode() == KeyCode.DIGIT1)
                     services.playbackService().goToFrame(
@@ -73,10 +139,10 @@ public class MainApplication extends Application {
                     services.playbackService().goToFrame(
                             context.playback().getPlaybackEngine().getPausedFrame()+11025);
 
-            if (event.isControlDown() && event.getCode() == KeyCode.Z)
-                commandManager.undo();
-            if (event.isControlDown() && event.getCode() == KeyCode.Y)
-                commandManager.redo();
+
+            if (event.getCode() == KeyCode.CONTROL)
+                services.selectionService().enableSelection();
+
 
         });
 
@@ -85,6 +151,16 @@ public class MainApplication extends Application {
                 controller.onPlay();
                 event.consume();
             }
+
+            if (event.isControlDown() && event.getCode() == KeyCode.A && !event.isShiftDown())
+                context.project().getTrackPanes().forEach(
+                        trackPane -> trackPane.getClipPanes().forEach(clipPane -> {
+                            clipPane.setSelected(true);
+                            context.selection().getSelectedClips().add(clipPane);
+                        })
+
+                );
+
         });
 
         scene.setOnKeyReleased(event -> {

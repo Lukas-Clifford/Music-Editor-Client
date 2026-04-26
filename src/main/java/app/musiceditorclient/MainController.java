@@ -1,7 +1,6 @@
 package app.musiceditorclient;
 
 import app.musiceditorclient.commands.*;
-import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.models.RecursiveClipDialogResult;
 import app.musiceditorclient.models.TrimClipDialogResult;
 import app.musiceditorclient.view.ClipPane;
@@ -83,11 +82,13 @@ public class MainController extends EventController {
                 this::onAddReiterativeClip,
                 this::onMoveTrackUp,
                 this::onMoveTrackDown,
-                this::onRemoveClipPane
+                this::onRemoveClipPane,
+                this::onTrackSelection
         );
 
 
     }
+
 
     private void setupSelectionContextMenu() {
         services.selectionService().setupSelectionContextMenu(
@@ -109,6 +110,11 @@ public class MainController extends EventController {
                     if (!context.selection().getSelectedClips().isEmpty()) {
                         services.selectionService().copySelectedClips();
                     }
+                }, event ->{
+                    if (!context.selection().getSelectedClips().isEmpty()) {
+                        services.selectionService().copySelectedClips();
+                        commandManager.executeCommand(new RemoveSelectionCommand(event));
+                    }
                 }
         );
     }
@@ -128,7 +134,7 @@ public class MainController extends EventController {
 
     public void onLeftClickWhileFileSelected(ActionEvent event) {
 
-        if(context.selection().getSelectedFile() != null) {
+        if(context.selection().getSelectedFile() != null && !context.selection().isIsSelectionToolActiveProperty()) {
             int startMs = services.trackService().calculateClipStartMs(((TrackPane) event.getSource()));
             commandManager.executeCommand(new AddClipCommand(event, context.selection().getSelectedFile(), startMs));
 
@@ -151,7 +157,7 @@ public class MainController extends EventController {
     }
 
     public void onRemoveTrack(ActionEvent event) {
-        commandManager.executeCommand(new RemoveTrackCommand(event));
+        commandManager.executeCommand(new RemoveTrackCommand(event, tracksTableView));
     }
 
     public void onSplitClipPane(ActionEvent event) {
@@ -193,5 +199,13 @@ public class MainController extends EventController {
     public void onRemoveClipPane(ActionEvent event) {
         commandManager.executeCommand(new RemoveClipCommand(event));
    }
+
+    private void onTrackSelection(ActionEvent event) {
+        TrackPane trackPane = (TrackPane) event.getSource();
+        trackPane.getClipPanes().forEach(clipPane -> {
+            clipPane.setSelected(true);
+            context.selection().getSelectedClips().add(clipPane);
+        });
+    }
 
 }

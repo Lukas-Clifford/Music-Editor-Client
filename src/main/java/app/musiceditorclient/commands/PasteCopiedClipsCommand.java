@@ -21,9 +21,14 @@ public class PasteCopiedClipsCommand extends EditorCommand{
         super(event);
     }
 
+    public PasteCopiedClipsCommand(Event event, int startMs) {
+        super(event);
+        this.startMs = startMs;
+    }
+
     @Override
     public void execute() {
-        if (!context.selection().getSelectedClips().isEmpty()) {
+        if (!context.selection().getSelectedClips().isEmpty() || !context.selection().getCopiedClips().isEmpty()) {
             services.playbackService().stopPlaybackForEdit();
 
             trackPane = ((TrackPane) event.getSource());

@@ -16,6 +16,7 @@ import javafx.scene.input.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SelectionService {
     private final EditorContext context;
@@ -28,7 +29,8 @@ public class SelectionService {
             EventHandler<ActionEvent> onMoveSelectedClips,
             EventHandler<ActionEvent> onMoveToSelectedClips,
             EventHandler<ActionEvent> onRemoveSelectedClips,
-            EventHandler<ActionEvent> onCopySelectedClips
+            EventHandler<ActionEvent> onCopySelectedClips,
+            EventHandler<ActionEvent> onCutSelectedClips
     ) {
 
         MenuItem moveSelectedClipsMenuItem = new MenuItem("Move");
@@ -43,13 +45,26 @@ public class SelectionService {
         MenuItem copySelectedClipsMenuItem = new MenuItem("Copy");
         copySelectedClipsMenuItem.setOnAction(onCopySelectedClips);
 
-        context.ui().getSelectionContextMenu().getItems().addAll(moveSelectedClipsMenuItem, moveToSelectedClipsMenuItem, removeSelectedClipsMenuItem, copySelectedClipsMenuItem);
+        MenuItem cutSelectedClipsMenuItem = new MenuItem("Cut");
+        cutSelectedClipsMenuItem.setOnAction(onCutSelectedClips);
+
+        context.ui().getSelectionContextMenu().getItems().addAll(moveSelectedClipsMenuItem, moveToSelectedClipsMenuItem, removeSelectedClipsMenuItem, copySelectedClipsMenuItem, cutSelectedClipsMenuItem);
 
     }
 
-
     public void copySelectedClips() {
-        context.selection().getCopiedClips().addAll(context.selection().getSelectedClips());
+        context.selection().setCopiedClips(
+                context.selection().getSelectedClips().stream()
+                        .map(clipPane -> new ClipPane(
+                                new Clip(
+                                        clipPane.getAudioClip().getWavFile(),
+                                        clipPane.getAudioClip().getTimelineMsPosition()
+                                ),
+                                clipPane.zoomFactor)
+                        )
+                        .collect(Collectors.toList())
+
+        );
     }
 
 

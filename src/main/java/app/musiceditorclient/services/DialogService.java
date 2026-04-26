@@ -42,6 +42,8 @@ public class DialogService {
 
     }
 
+
+
     public double getSecondsToMoveSelection() {
         double seconds = -1;
 
@@ -50,6 +52,26 @@ public class DialogService {
                 "Enter seconds to move to",
                 "Seconds",
                 "0"
+        );
+
+        if (dialogResult.isEmpty()) return seconds;
+
+        try {
+            return Double.parseDouble(dialogResult.get().replace(",", "."));
+        } catch (NumberFormatException ignored) {
+            // Ignored
+        }
+        return seconds;
+    }
+
+    public double getSecondsToPasteClips(int timelineMsPosition) {
+        double seconds = -1;
+
+        var dialogResult = showTextInputDialog(
+                "Paste clips at...",
+                "Enter the position in seconds",
+                "Seconds",
+                (timelineMsPosition/1000) +""
         );
 
         if (dialogResult.isEmpty()) return seconds;

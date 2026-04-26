@@ -1,9 +1,14 @@
 package app.musiceditorclient;
 
+import app.musiceditorclient.commands.AddTrackCommand;
+import app.musiceditorclient.commands.PasteCopiedClipsCommand;
+import app.musiceditorclient.commands.RemoveSelectionCommand;
 import app.musiceditorclient.infrastructure.AppFileUtils;
 import app.musiceditorclient.models.RecursiveClipDialogResult;
 import app.musiceditorclient.view.TrackPane;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
@@ -49,12 +54,7 @@ public abstract class EventController {
 
     @FXML
     protected void onAddNewTrack() {
-        TrackPane newTrack = new TrackPane(context.ui().zoomFactorProperty());
-        stopPlayback();
-        services.trackService().configureTrackPane(newTrack);
-        context.project().getTrackPanes().add(newTrack);
-        services.playbackService().reloadPlaybackEngine();
-        tracksTableView.refresh();
+        commandManager.executeCommand(new AddTrackCommand(null, tracksTableView));
     }
 
     @FXML
@@ -247,4 +247,105 @@ public abstract class EventController {
             selectionToolButton.setStyle("-fx-background-color:transparent;");
         }
     }
+
+    @FXML
+    protected void onCloseProject() {
+        context.project().setTrackPanes(new ArrayList<>());
+        context.project().setCurrentProject(null);
+        context.ui().getSampleTreeRoots().clear();
+        context.selection().getSelectedClips().clear();
+
+        tracksTableView.setItems(FXCollections.observableList(context.project().getTrackPanes()));
+        tracksTableView.getItems().clear();
+        tracksTableView.refresh();
+
+        onAddNewTrack();
+        onAddNewTrack();
+
+
+        services.playbackService().reloadPlaybackEngine();
+        context.project().setCurrentProject(null);
+
+    }
+
+    @FXML
+    protected void onSaveAs() {
+        services.projectPersistenceService().createProject();
+    }
+
+
+    @FXML
+    protected void onOpenPreferences() {
+        services.preferencesService().showPreferencesWindow();
+    }
+
+    @FXML
+    protected void onQuit() {
+        services.projectPersistenceService().saveProject();
+        Platform.exit();
+    }
+
+    @FXML
+    protected void onUndo() {
+        commandManager.undo();
+    }
+
+    @FXML
+    protected void onRedo() {
+        commandManager.redo();
+    }
+
+    @FXML
+    protected void onCut() {
+        if (!context.selection().getSelectedClips().isEmpty()) {
+            services.selectionService().copySelectedClips();
+            commandManager.executeCommand(new RemoveSelectionCommand(null));
+        }
+    }
+
+    @FXML
+    protected void onCopy() {
+        if (!context.selection().getSelectedClips().isEmpty())
+            services.selectionService().copySelectedClips();
+
+    }
+
+    @FXML
+    protected void onPaste() {
+
+        commandManager.executeCommand(new AddTrackCommand(null, tracksTableView));
+        int startMs = (int) (services.dialogService().getSecondsToPasteClips(
+                context.selection().getSelectedClips().getFirst().getAudioClip().getTimelineMsPosition()
+        ) * 1000);
+        commandManager.executeCommand(
+                new PasteCopiedClipsCommand(
+                        new ActionEvent(context.project().getTrackPanes().getLast(), null),
+                        startMs
+                )
+        );
+
+
+    }
+
+    @FXML
+    protected void onDelete() {
+        if (!context.selection().getSelectedClips().isEmpty())
+            commandManager.executeCommand(new RemoveSelectionCommand(null));
+
+    }
+
+    @FXML
+    protected void onSelectAll() {
+        context.project().getTrackPanes().forEach(
+                trackPane -> context.selection().getSelectedClips().addAll(
+                        trackPane.getClipPanes()
+                )
+        );
+    }
+
+    @FXML
+    protected void onUnselectAll() {
+        services.selectionService().clearSelection();
+    }
+
 }

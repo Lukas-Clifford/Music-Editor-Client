@@ -54,6 +54,7 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onMoveTrackUp;
     private transient EventHandler<ActionEvent> onMoveTrackDown;
     private transient EventHandler<ActionEvent> onMuteTrack;
+    private transient EventHandler<ActionEvent> onTrackSelectionAction;
     private transient Pane rulerPane;
     private transient BooleanProperty selectionToolEnabledProperty = new SimpleBooleanProperty(false);
 
@@ -175,6 +176,8 @@ public class TrackPane implements Serializable {
                 controlPaneContextMenu.show(controlPane, event.getScreenX(), event.getScreenY());
             } else if (controlPaneContextMenu.isShowing()) {
                 controlPaneContextMenu.hide();
+            } else if (selectionToolEnabledProperty.get()) {
+                if (onTrackSelectionAction != null) onTrackSelectionAction.handle(new ActionEvent(this, null));
             }
         });
     }
@@ -260,6 +263,10 @@ public class TrackPane implements Serializable {
 
     public void setOnMuteTrack(EventHandler<ActionEvent> onMuteTrack) {
         this.onMuteTrack = onMuteTrack;
+    }
+
+    public void setOnTrackSelectionAction(EventHandler<ActionEvent> onTrackSelectionAction) {
+        this.onTrackSelectionAction = onTrackSelectionAction;
     }
 
     public FloatProperty clipStartOffsetProperty() {
