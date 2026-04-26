@@ -55,6 +55,7 @@ public class TrackPane implements Serializable {
     private transient EventHandler<ActionEvent> onMoveTrackDown;
     private transient EventHandler<ActionEvent> onMuteTrack;
     private transient EventHandler<ActionEvent> onTrackSelectionAction;
+    private transient EventHandler<ActionEvent> onMoveClipAction;
     private transient Pane rulerPane;
     private transient BooleanProperty selectionToolEnabledProperty = new SimpleBooleanProperty(false);
 
@@ -367,6 +368,7 @@ public class TrackPane implements Serializable {
 
     public void registerClipPaneHandlers(ClipPane clipPane) {
         clipPane.setTrackPane(this);
+        clipPane.setOnMoveAction(onMoveClipAction);
         clipPane.setOnRemoveAction(onRemoveClip);
         clipPane.setOnTrimAction(onTrimAction);
         clipPane.setOnSelectionAction(onClipSelection);
@@ -470,5 +472,9 @@ public class TrackPane implements Serializable {
                 event.consume();
             }
         });
+    }
+
+    public void setOnMoveClipAction(EventHandler<ActionEvent> onMoveClipAction) {
+        this.onMoveClipAction = onMoveClipAction;
     }
 }

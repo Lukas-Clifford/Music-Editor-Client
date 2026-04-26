@@ -83,7 +83,8 @@ public class MainController extends EventController {
                 this::onMoveTrackUp,
                 this::onMoveTrackDown,
                 this::onRemoveClipPane,
-                this::onTrackSelection
+                this::onTrackSelection,
+                this::onMoveClip
         );
 
 
@@ -208,4 +209,7 @@ public class MainController extends EventController {
         });
     }
 
+    private void onMoveClip(ActionEvent event) {
+        commandManager.executeCommand(new MoveClipCommand(event));
+    }
 }

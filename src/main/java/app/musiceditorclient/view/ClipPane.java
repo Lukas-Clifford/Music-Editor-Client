@@ -93,25 +93,7 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
 
         MenuItem moveItem = new MenuItem("Move");
         moveItem.setOnAction(event -> {
-            if (onMoveAction != null) {
-                onMoveAction.handle(event);
-                return;
-            }
-
-            TextInputDialog dialog = new TextInputDialog(String.valueOf(audioClip.getTimelineMsPositionProperty().get() / 1000.0));
-            dialog.setTitle("Move clip");
-            dialog.setHeaderText("Enter destination second");
-            dialog.setContentText("Second:");
-
-            Optional<String> result = dialog.showAndWait();
-            result.ifPresent(value -> {
-                try {
-                    double seconds = Double.parseDouble(value.replace(",", "."));
-                    setClipStartPosition((int) (seconds * 1000));
-                } catch (NumberFormatException ignored) {
-                    // Ignored
-                }
-            });
+            if (onMoveAction != null) onMoveAction.handle(new ActionEvent(trackPane, this));
         });
 
         MenuItem trimItem = new MenuItem("Trim");
