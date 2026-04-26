@@ -14,6 +14,7 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -47,7 +48,6 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
 
     private double lastMouseX = 0d;
 
-
     public ClipPane(Clip clip, FloatProperty zoomFactor) {
         this.audioClip = clip;
         this.zoomFactor = new SimpleFloatProperty(1f);
@@ -58,10 +58,12 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
     private void initUi() {
         clipNameLabel = new Label(audioClip.getWavFile().getName() + " : " + audioClip.getLength() + "ms");
         clipNameLabel.setMouseTransparent(true);
+        clipNameLabel.layoutYProperty().bind(this.heightProperty().subtract(clipNameLabel.heightProperty()).subtract(4));
         getChildren().add(clipNameLabel);
-        clipNameLabel.layoutBoundsProperty().addListener((observable, oldValue, newValue) -> {
-            if (clipNameLabel.getWidth() > getWidth()) setClipNameLabel("");
-        });
+
+        widthProperty().addListener((obs, oldWidth, newWidth) -> updateClipNameVisibility());
+        clipNameLabel.textProperty().addListener((obs, oldText, newText) -> updateClipNameVisibility());
+        clipNameLabel.widthProperty().addListener((obs, oldWidth, newWidth) -> updateClipNameVisibility());
 
         if (zoomFactor != null) {
             prefWidthProperty().bind(zoomFactor.multiply(audioClip.getLength()));
@@ -70,6 +72,13 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
 
         updateSelectionStyle();
         setupContextMenu();
+        updateClipNameVisibility();
+    }
+
+    private void updateClipNameVisibility() {
+        if (clipNameLabel == null) return;
+        clipNameLabel.setText(audioClip.getWavFile().getName() + " : " + audioClip.getLength() + "ms");
+        clipNameLabel.setVisible(clipNameLabel.prefWidth(-1) <= getWidth());
     }
 
     public void bindZoomFactor(FloatProperty zoomFactor) {
@@ -225,7 +234,22 @@ public class ClipPane extends Pane implements Serializable, Comparable<ClipPane>
     }
 
     private void updateSelectionStyle() {
-        setStyle(selected ? "-fx-background-color:cornflowerblue;" : "-fx-background-color:aquamarine;");
+        String filename = getAudioClip().getWavFile().getName();
+        int hash = Math.abs(filename.hashCode());
+        int r = (hash >> 16) & 0xFF;
+        int g = (hash >> 8) & 0xFF;
+        int b = (hash) & 0xFF;
+
+        r = 100 + (r % 156);
+        g = 100 + (g % 156);
+        b = 100 + (b % 156);
+
+        setStyle(selected
+                ? "-fx-background-color: #000080;"
+                : "-fx-background-color: rgb(%s,%s,%s)".formatted(r, g, b));
+        if (!getStyleClass().contains("ClipPane")) {
+            getStyleClass().add("ClipPane");
+        }
     }
 
     public void refreshSize() {

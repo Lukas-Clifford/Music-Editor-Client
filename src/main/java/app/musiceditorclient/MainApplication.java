@@ -8,10 +8,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 
 public class MainApplication extends Application {
@@ -34,6 +36,8 @@ public class MainApplication extends Application {
         stage.setTitle("Music Editor");
         stage.setMaximized(true);
         stage.setFullScreen(false);
+        Font.loadFont(MainApplication.class.getResourceAsStream("styles/fonts/w95f.ttf"), 11);
+        scene.getStylesheets().add(Objects.requireNonNull(MainApplication.class.getResource("styles/style.css")).toExternalForm());
         stage.setScene(scene);
 
         scene.setOnScroll(event -> {

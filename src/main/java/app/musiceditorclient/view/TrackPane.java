@@ -69,14 +69,14 @@ public class TrackPane implements Serializable {
     }
 
     private void initUi() {
-        controlPane = new Pane();
+        controlPane = new StackPane();
         timeLinePane = new Pane();
 
         if (zoomFactor != null) {
             timeLinePane.prefHeightProperty().bind(zoomFactor.multiply(100));
             timeLinePane.prefWidthProperty().bind(zoomFactor.multiply(600000));
         }
-        timeLinePane.setStyle("-fx-background-color:lightgray;");
+        timeLinePane.setStyle("-fx-background-color:#EDE9E6;");
 
         rulerPane = new Pane();
         rulerPane.setMouseTransparent(true);
@@ -88,33 +88,39 @@ public class TrackPane implements Serializable {
 
         setupTimeLinePaneContextMenu();
         setupTimeLinePaneMouseEvents();
-
         setupControlPane();
 
+        if (!controlPane.getStyleClass().contains("TrackPane")) {
+            controlPane.getStyleClass().add("TrackPane");
+        }
+        if (!timeLinePane.getStyleClass().contains("TrackPane")) {
+            timeLinePane.getStyleClass().add("TrackPane");
+        }
     }
 
     private void setupControlPane() {
         setupControlPaneContextMenu();
 
-        Button muteButton = new Button("Mute");
-        Button removeButton = new Button("Remove");
+        Button muteButton = new Button("\uD83D\uDD0A");
+        Button removeButton = new Button("-");
         Button moveUpButton = new Button("/\\");
         Button moveDownButton = new Button("\\/");
 
         HBox controlButtonsHBox = new HBox();
-        controlButtonsHBox.getChildren().addAll(muteButton, removeButton);
+        controlButtonsHBox.getChildren().addAll(muteButton, removeButton, moveUpButton, moveDownButton);
+        controlButtonsHBox.setAlignment(Pos.CENTER);
+        controlButtonsHBox.setSpacing(5);
 
-        VBox controlPaneVBox = new VBox();
-        controlPaneVBox.getChildren().addAll(moveUpButton, controlButtonsHBox, moveDownButton);
-        controlPaneVBox.setAlignment(Pos.CENTER);
-        controlPaneVBox.setSpacing(5);
+        controlButtonsHBox.prefWidthProperty().bind(controlPane.prefWidthProperty());
+        controlButtonsHBox.prefHeightProperty().bind(controlPane.prefHeightProperty());
 
-        controlPane.getChildren().add(controlPaneVBox);
-
-
+        controlPane.getChildren().add(controlButtonsHBox);
+        controlPane.setStyle("-fx-background-color:EDE9E6;");
 
         muteButton.setOnAction(event -> {
             if (onMuteTrack != null) onMuteTrack.handle(new ActionEvent(this, null));
+            if (this.isMuted) muteButton.setText("\uD83D\uDD07");
+            else muteButton.setText("\uD83D\uDD0A");
         });
 
         removeButton.setOnAction(event -> {
@@ -153,7 +159,7 @@ public class TrackPane implements Serializable {
             boolean isSecond = ((int) ms) % 1000 == 0;
             line.setStartY(0);
             line.setEndY(isSecond ? 18 : 10);
-            line.setStroke(isSecond ? Color.CRIMSON : Color.BLACK);
+            line.setStroke(isSecond ? Color.rgb(220, 155, 155) : Color.BLACK);
             line.setStrokeWidth(isSecond ? 1.5 : 1.0);
 
             rulerPane.getChildren().add(line);
@@ -296,9 +302,9 @@ public class TrackPane implements Serializable {
     public void toggleMuted() {
         this.isMuted = !this.isMuted;
         if (isMuted)
-            this.controlPane.setStyle("-fx-background-color:gray;");
+            this.controlPane.setStyle("-fx-background-color:#EDE9E6;");
         else
-            this.controlPane.setStyle("-fx-background-color:transparent;");
+            this.controlPane.setStyle("-fx-background-color:#5C4F4A;");
 
     }
 

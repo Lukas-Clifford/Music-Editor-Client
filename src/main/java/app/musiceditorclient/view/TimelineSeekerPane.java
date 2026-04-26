@@ -28,7 +28,7 @@ public class TimelineSeekerPane extends Pane {
     public TimelineSeekerPane(FloatProperty zoomFactor) {
         this.zoomFactor.bind(zoomFactor);
         prefWidthProperty().bind(zoomFactor.multiply(600_000)); // max length 10 mins
-        this.setPrefHeight(50);
+        this.setPrefHeight(60);
 
         seekerPosition = new SimpleFloatProperty(1f);
         songLengthProperty = new SimpleFloatProperty(120f);
