@@ -13,6 +13,7 @@ import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 
@@ -31,7 +32,11 @@ public class MainController extends EventController {
         try {
             versionLabel.setText(AppFileUtils.readProperty("APPVERSION"));
         } catch (IOException e) {
-            System.err.println("ERROR READING VERSION PROPERTY");
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Property error");
+            alert.setHeaderText(null);
+            alert.setContentText("Couldn't read app version property");
+            alert.showAndWait();
         }
 
         setupTableView();

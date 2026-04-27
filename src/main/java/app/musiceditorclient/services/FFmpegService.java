@@ -1,6 +1,7 @@
 package app.musiceditorclient.services;
 
 import app.musiceditorclient.infrastructure.FfmpegInstaller;
+import javafx.scene.control.Alert;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +36,8 @@ public class FFmpegService {
 
             if (exit != 0) {
                 Files.deleteIfExists(tempPath);
-                throw new RuntimeException("ffmpeg failed to set samplerate on " + filePath);
+                showError("Audio conversion error", "Could not convert \"" + filePath.getName() + "\".");
+                return;
             }
 
             Files.move(tempPath, originalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -44,7 +46,15 @@ public class FFmpegService {
                 Files.deleteIfExists(tempPath);
             } catch (IOException ignored) {
             }
-            throw new RuntimeException(e);
+            showError("Audio conversion error", "Could not convert \"" + filePath.getName() + "\".");
         }
+    }
+
+    private static void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

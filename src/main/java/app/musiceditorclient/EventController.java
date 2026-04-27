@@ -119,7 +119,11 @@ public abstract class EventController {
             AppFileUtils.writeProperty("LAST_OPENED_PROJECT", file.getAbsolutePath());
             services.projectPersistenceService().notifyProjectLoaded();
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error opening last opened project");
+            alert.setHeaderText(null);
+            alert.setContentText("Could not open last opened project");
+            alert.showAndWait();
         }
     }
 
@@ -276,10 +280,6 @@ public abstract class EventController {
     }
 
 
-    @FXML
-    protected void onOpenPreferences() {
-        services.preferencesService().showPreferencesWindow();
-    }
 
     @FXML
     protected void onQuit() {

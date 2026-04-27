@@ -4,6 +4,8 @@ import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.models.Track;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
@@ -138,7 +140,7 @@ public class PlaybackEngine {
             }
 
         } catch (LineUnavailableException | InterruptedException e) {
-            throw new RuntimeException(e);
+            showErrorPopup("Playback error", "An error occurred while playing audio.");
         } finally {
             if (line != null) {
                 line.stop();
@@ -250,7 +252,7 @@ public class PlaybackEngine {
                 }
 
             } catch (UnsupportedAudioFileException | IOException e) {
-                throw new RuntimeException(e);
+                showErrorPopup("Audio processing error", "An error occurred while reading audio data.");
             }
         }
 
@@ -313,8 +315,16 @@ public class PlaybackEngine {
              )) {
             AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, outputFile.toFile());
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            showErrorPopup("Export error", "An error occurred while exporting the audio file.");
         }
+    }
+
+    private void showErrorPopup(String title, String message) {
+        Alert alert = new Alert(AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private int floatToInt(float value) {

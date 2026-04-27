@@ -2,7 +2,7 @@ package app.musiceditorclient.services;
 
 import app.musiceditorclient.EditorContext;
 import app.musiceditorclient.infrastructure.AppFileUtils;
-import javafx.collections.FXCollections;
+import javafx.scene.control.Alert;
 import javafx.scene.control.TextInputDialog;
 
 import java.io.IOException;
@@ -19,17 +19,14 @@ public class ProjectPersistenceService {
     }
 
     public void loadLastOpenedProject() {
-
-
         try {
             String lastOpenedProject = AppFileUtils.readProperty("LAST_OPENED_PROJECT");
             if (!lastOpenedProject.equals("null")) {
                 loadProject(Path.of(lastOpenedProject));
             }
         } catch (IOException e) {
-
+            showError("Read property error", "Could not read the last opened project.");
         }
-
     }
 
     public void loadProject(Path projectPath) {
@@ -42,11 +39,11 @@ public class ProjectPersistenceService {
             context.ui().getSampleTreeRoots().addAll(projectData.sampleTreeRoots());
 
             context.selection().getSelectedClips().clear();
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("No se pudo cargar el ultimo proyecto");
-
+        } catch (IOException e) {
+            showError("Load project error", "Could not load the project. File not found");
+        } catch (ClassNotFoundException e) {
+            showError("Load project error", "Could not load the project. File version not compatible");
         }
-
     }
 
     public void setOnProjectLoadedListener(Consumer<Path> onProjectLoadedListener) {
@@ -60,7 +57,6 @@ public class ProjectPersistenceService {
     }
 
     public void createProject() {
-
         TextInputDialog repetitionsDialog = new TextInputDialog("Project");
         repetitionsDialog.setTitle("Create new project");
         repetitionsDialog.setHeaderText("Project name");
@@ -74,7 +70,8 @@ public class ProjectPersistenceService {
         try {
             context.project().setCurrentProject(AppFileUtils.createMusicProjectFile(repetitionsResult.get()));
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            showError("Create project error", "Could not create the project.");
+            return;
         }
 
         saveProject();
@@ -85,7 +82,15 @@ public class ProjectPersistenceService {
             AppFileUtils.writeMusicProject(context.project().getCurrentProject(), context.project().getTrackPanes(), context.ui().getSampleTreeRoots());
             AppFileUtils.writeProperty("LAST_OPENED_PROJECT", context.project().getCurrentProject().toAbsolutePath().toString());
         } catch (IOException e) {
-            System.err.println("Could not save project");
+            showError("Save project error", "Could not save the project.");
         }
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

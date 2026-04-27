@@ -1,6 +1,7 @@
 package app.musiceditorclient.services;
 
 import app.musiceditorclient.infrastructure.FfmpegInstaller;
+import javafx.scene.control.Alert;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class FfprobeService {
-
 
     /**
      * Returns audio length in milliseconds
@@ -34,17 +34,18 @@ public class FfprobeService {
             ).trim();
             int exit = p.waitFor();
 
-            if (exit != 0)  throw new RuntimeException("ffprobe failed: " + output);
+            if (exit != 0) {
+                showError("Audio analysis error", "Could not read the duration for \"" + filePath.getName() + "\".");
+                return 0;
+            }
 
             return (int) (Double.parseDouble(output) * 1000);
 
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            showError("Audio analysis error", "Could not read the duration for \"" + filePath.getName() + "\".");
+            return 0;
         }
-
-
     }
-
 
     /**
      * Returns sample rate from audio file in Hz (project standard: 44100)
@@ -71,18 +72,24 @@ public class FfprobeService {
             ).trim();
             int exit = p.waitFor();
 
-            if (exit != 0)  throw new RuntimeException("ffprobe failed: " + output);
+            if (exit != 0) {
+                showError("Audio analysis error", "Could not read the sample rate for \"" + filePath.getName() + "\".");
+                return 44100;
+            }
 
             return Integer.parseInt(output);
 
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            showError("Audio analysis error", "Could not read the sample rate for \"" + filePath.getName() + "\".");
+            return 44100;
         }
-
-
     }
 
-
-
-
+    private static void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
 }
