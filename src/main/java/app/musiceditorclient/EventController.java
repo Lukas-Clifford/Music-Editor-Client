@@ -33,6 +33,8 @@ public abstract class EventController {
     @FXML protected SplitPane samplesSplitPane;
     @FXML protected Button selectionToolButton;
     @FXML protected ListView<String> logListView;
+    @FXML protected Label statusLabel;
+    @FXML protected Label versionLabel;
 
     protected final EditorContext context;
     protected final EditorServices services;

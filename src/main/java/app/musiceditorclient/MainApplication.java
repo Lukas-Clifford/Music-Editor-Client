@@ -61,9 +61,10 @@ public class MainApplication extends Application {
         scene.setOnKeyPressed(event -> {
 
             if (event.isControlDown()) {
-                if (event.getCode() == KeyCode.S)
+                if (event.getCode() == KeyCode.S) {
                     services.projectPersistenceService().saveProject();
-
+                    controller.statusLabel.setText("PROJECT SAVED");
+                }
                 if (event.getCode() == KeyCode.A && event.isShiftDown())
                     services.selectionService().clearSelection();
 

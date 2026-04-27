@@ -1,12 +1,14 @@
 package app.musiceditorclient;
 
 import app.musiceditorclient.commands.*;
+import app.musiceditorclient.infrastructure.AppFileUtils;
 import app.musiceditorclient.models.RecursiveClipDialogResult;
 import app.musiceditorclient.models.TrimClipDialogResult;
 import app.musiceditorclient.view.ClipPane;
 import app.musiceditorclient.view.TimelineSeekerPane;
 import app.musiceditorclient.view.TrackPane;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.fxml.FXML;
@@ -15,6 +17,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 
 public class MainController extends EventController {
@@ -25,6 +28,12 @@ public class MainController extends EventController {
 
     @FXML
     public void initialize() {
+        try {
+            versionLabel.setText(AppFileUtils.readProperty("APPVERSION"));
+        } catch (IOException e) {
+            System.err.println("ERROR READING VERSION PROPERTY");
+        }
+
         setupTableView();
         setupTrackPanesEvents();
         setupSelectionContextMenu();
@@ -43,6 +52,11 @@ public class MainController extends EventController {
         tracksTableView.refresh();
         services.playbackService().reloadPlaybackEngine();
         services.treeSampleService().restoreSampleTreeViews(samplesSplitPane);
+
+        commandManager.getActionLog().addListener((ListChangeListener.Change<? extends String> cambio) -> {
+            cambio.next();
+            statusLabel.setText(cambio.getList().getFirst());
+        });
     }
 
     private void setupLogListView() {
