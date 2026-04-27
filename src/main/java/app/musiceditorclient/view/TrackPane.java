@@ -106,7 +106,6 @@ public class TrackPane implements Serializable {
     }
 
     private void setupControlPane() {
-        setupControlPaneContextMenu();
 
         Button muteButton = new Button("\uD83D\uDD0A");
         Button removeButton = new Button("-");
@@ -141,7 +140,25 @@ public class TrackPane implements Serializable {
             if (onMoveTrackDown != null) onMoveTrackDown.handle(new ActionEvent(this, null));
         });
 
+        controlPaneContextMenu = new ContextMenu();
 
+        MenuItem deleteItem = new MenuItem("Delete");
+        deleteItem.setOnAction(event -> {
+            if (onDeleteAction != null) onDeleteAction.handle(new ActionEvent(this,null));
+        });
+
+        controlPaneContextMenu.getItems().add(deleteItem);
+
+        controlButtonsHBox.setOnMousePressed(event -> {
+            if (event.getButton() == MouseButton.SECONDARY) {
+                event.consume();
+                controlPaneContextMenu.show(controlPane, event.getScreenX(), event.getScreenY());
+            } else if (controlPaneContextMenu.isShowing()) {
+                controlPaneContextMenu.hide();
+            } else if (selectionToolEnabledProperty.get()) {
+                if (onTrackSelectionAction != null) onTrackSelectionAction.handle(new ActionEvent(this, null));
+            }
+        });
 
 
     }
@@ -172,27 +189,6 @@ public class TrackPane implements Serializable {
         }
     }
 
-    private void setupControlPaneContextMenu() {
-        controlPaneContextMenu = new ContextMenu();
-
-        MenuItem deleteItem = new MenuItem("Delete");
-        deleteItem.setOnAction(event -> {
-            if (onDeleteAction != null) onDeleteAction.handle(new ActionEvent(this,null));
-        });
-
-        controlPaneContextMenu.getItems().add(deleteItem);
-
-        controlPane.setOnMousePressed(event -> {
-            if (event.getButton() == MouseButton.SECONDARY) {
-                event.consume();
-                controlPaneContextMenu.show(controlPane, event.getScreenX(), event.getScreenY());
-            } else if (controlPaneContextMenu.isShowing()) {
-                controlPaneContextMenu.hide();
-            } else if (selectionToolEnabledProperty.get()) {
-                if (onTrackSelectionAction != null) onTrackSelectionAction.handle(new ActionEvent(this, null));
-            }
-        });
-    }
 
     private void setupTimeLinePaneContextMenu() {
         timeLinePaneContextMenu = new ContextMenu();

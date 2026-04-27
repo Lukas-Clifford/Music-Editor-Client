@@ -204,8 +204,9 @@ public class MainController extends EventController {
     private void onTrackSelection(ActionEvent event) {
         TrackPane trackPane = (TrackPane) event.getSource();
         trackPane.getClipPanes().forEach(clipPane -> {
-            clipPane.setSelected(true);
-            context.selection().getSelectedClips().add(clipPane);
+            clipPane.setSelected(!clipPane.isSelected());
+            if (clipPane.isSelected()) context.selection().getSelectedClips().add(clipPane);
+            else context.selection().getSelectedClips().remove(clipPane);
         });
     }
 
