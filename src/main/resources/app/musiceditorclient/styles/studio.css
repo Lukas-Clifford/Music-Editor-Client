@@ -21,6 +21,11 @@
     -fx-background-radius: 0;
 }
 
+.ClipPane .label {
+    -fx-text-fill: #000;
+
+}
+
 .TrackPane {
     -fx-background-color: #4B3F38;
     -fx-border-color: #7A675A;
@@ -52,15 +57,6 @@
     -fx-background-color: #C8A96A;
 }
 
-.TrackPane .label,
-.ClipPane .label {
-    -fx-text-fill: #F1E9D2;
-}
-
-.controlColumn {
--fx-background-color: #5A4D45;
-}
-
 .menu-bar {
     -fx-background-color: #5A4D45;
     -fx-border-color: #7A675A;
@@ -83,6 +79,19 @@
     -fx-text-fill: #1E1714;
 }
 
+.menu-bar .menu .label {
+    -fx-text-fill: #F6EEDB;
+}
+
+.menu-bar .menu .menu-item .label {
+    -fx-text-fill: #F6EEDB;
+}
+
+.menu-bar .menu .menu-item:hover,
+.menu-bar .menu .menu-item:showing {
+    -fx-background-color: #C8A96A;
+}
+
 .context-menu {
     -fx-background-color: #5A4D45;
     -fx-border-color: #7A675A;
@@ -93,6 +102,10 @@
 .menu-item {
     -fx-background-color: transparent;
     -fx-padding: 4 12;
+}
+
+.menu .menu-item {
+    -fx-text-fill: #F6EEDB;
 }
 
 .menu-item:hover {
