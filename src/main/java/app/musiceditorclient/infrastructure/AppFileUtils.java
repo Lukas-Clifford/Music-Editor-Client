@@ -4,6 +4,7 @@ import app.musiceditorclient.view.TrackPane;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -170,6 +171,16 @@ public class AppFileUtils {
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static String readManualMd() throws IOException {
+        try (InputStream inputStream = AppFileUtils.class.getResourceAsStream(
+                "/app/musiceditorclient/Manual.md")) {
+            if (inputStream == null) {
+                throw new IOException("manual.md not found in resources");
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 

@@ -279,7 +279,10 @@ public abstract class EventController {
         services.projectPersistenceService().createProject();
     }
 
-
+    @FXML
+    protected void onOpenAbout() {
+        services.aboutWindowService().showAboutWindow();
+    }
 
     @FXML
     protected void onQuit() {

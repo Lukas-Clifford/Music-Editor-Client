@@ -19,6 +19,10 @@
             <id>Gluon</id>
             <url>https://nexus.gluonhq.com/nexus/content/repositories/releases</url>
         </repository>
+        <repository>
+            <id>jpro-sandec-repository</id>
+            <url>https://sandec.jfrog.io/artifactory/repo/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -68,6 +72,12 @@
             <artifactId>storage</artifactId>
             <version>4.0.24</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>one.jpro.platform</groupId>
+            <artifactId>jpro-mdfx</artifactId>
+            <version>0.5.0</version>
         </dependency>
 
     </dependencies>
