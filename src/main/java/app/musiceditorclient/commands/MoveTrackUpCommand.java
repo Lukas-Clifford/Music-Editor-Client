@@ -9,9 +9,11 @@ public class MoveTrackUpCommand extends EditorCommand{
 
     private TrackPane trackPane;
     private int index;
+    private TableView<TrackPane> tableView;
 
     public MoveTrackUpCommand(Event event, TableView<TrackPane> tracksTableView) {
         super(event);
+        this.tableView = tracksTableView;
     }
 
     @Override
@@ -26,7 +28,7 @@ public class MoveTrackUpCommand extends EditorCommand{
             context.project().getTrackPanes().remove(trackPane);
             context.project().getTrackPanes().add(index-1, trackPane);
         }
-
+        tableView.refresh();
         services.playbackService().reloadPlaybackEngine();
     }
 
@@ -36,7 +38,7 @@ public class MoveTrackUpCommand extends EditorCommand{
 
         context.project().getTrackPanes().remove(trackPane);
         context.project().getTrackPanes().add(index, trackPane);
-
+        tableView.refresh();
         services.playbackService().reloadPlaybackEngine();
     }
 
