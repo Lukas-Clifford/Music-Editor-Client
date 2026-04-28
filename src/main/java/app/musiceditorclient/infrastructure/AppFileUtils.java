@@ -136,7 +136,12 @@ public class AppFileUtils {
         if (samplesUrl != null) {
             return new File(samplesUrl.getPath());
         }
-        return new File(System.getProperty("user.home"));
+
+        File samplesDir = getAppDataDir().resolve(SAMPLE_PACKS_DIR_NAME).toFile();
+        if (!samplesDir.exists()) {
+            samplesDir.mkdirs();
+        }
+        return samplesDir;
     }
 
     public static void extractZipIntoSamplesDir(File pack) {
