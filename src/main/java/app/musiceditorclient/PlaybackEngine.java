@@ -3,7 +3,6 @@ package app.musiceditorclient;
 import app.musiceditorclient.models.Clip;
 import app.musiceditorclient.models.Track;
 import javafx.beans.property.SimpleFloatProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 

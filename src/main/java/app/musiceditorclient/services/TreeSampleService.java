@@ -10,8 +10,6 @@ import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 
-import java.awt.event.ActionEvent;
-import java.beans.EventHandler;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
