@@ -4,7 +4,6 @@ import app.musiceditorclient.commands.AddTrackCommand;
 import app.musiceditorclient.commands.PasteCopiedClipsCommand;
 import app.musiceditorclient.commands.RemoveSelectionCommand;
 import app.musiceditorclient.infrastructure.AppFileUtils;
-import app.musiceditorclient.models.RecursiveClipDialogResult;
 import app.musiceditorclient.view.TrackPane;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -18,8 +17,6 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 public abstract class EventController {
 
@@ -280,8 +277,17 @@ public abstract class EventController {
     }
 
     @FXML
-    protected void onOpenAbout() {
-        services.aboutWindowService().showAboutWindow();
+    protected void onOpenManual() {
+        services.aboutWindowService().showManualWindow();
+    }
+
+    @FXML
+    protected void onOpenShortcuts() {
+        services.aboutWindowService().showShortcutsWindow();
+    }
+    @FXML
+    protected void onOpenInfo() {
+        services.aboutWindowService().showInfoWindow();
     }
 
     @FXML

@@ -163,7 +163,9 @@
                     </Menu>
                     <Menu mnemonicParsing="false" text="Help">
                       <items>
-                        <MenuItem mnemonicParsing="false" text="About Clifford's Music Editor" onAction="#onOpenAbout" />
+                        <MenuItem mnemonicParsing="false" text="Help" onAction="#onOpenManual" />
+                        <MenuItem mnemonicParsing="false" text="Shortcuts" onAction="#onOpenShortcuts" />
+                        <MenuItem mnemonicParsing="false" text="Info" onAction="#onOpenInfo" />
                       </items>
                     </Menu>
                   </menus>

@@ -24,38 +24,66 @@ public class AboutWindowService {
         this.context = context;
     }
 
-    public void showAboutWindow() {
+    public void showManualWindow() {
         try {
-            MarkdownView markdownView = new MarkdownView(AppFileUtils.readManualMd()){
-                @Override
-                protected List<String> getDefaultStylesheets() {
-                    return List.of(Objects.requireNonNull(MainApplication.class.getResource("styles/markdown.css")).toExternalForm());
-                }
-            };
-
-            markdownView.setMaxWidth(700);
-            markdownView.setPadding(new Insets(20,20,20,20));
-
-            ScrollPane scrollPane = new ScrollPane(markdownView);
-            scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-
             Stage stage = new Stage();
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.setTitle("About Clifford's Music Editor");
-
-            Scene scene = new Scene(scrollPane, 700, 800);
-
-            stage.setScene(scene);
+            stage.setScene(createMarkdownScene(AppFileUtils.readManualMd(), 700, 700, 800));
             stage.showAndWait();
-
-
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("About window error");
-            alert.setHeaderText(null);
-            alert.setContentText("Unable to open the About window.");
-            alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+            Alert alert = createErrorAlert("About window error", "Unable to open the About window.");
             alert.showAndWait();
         }
+    }
+
+    public void showShortcutsWindow() {
+        try {
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Shortcuts");
+            stage.setScene(createMarkdownScene(AppFileUtils.readShortcutsMd(), 900, 900, 750));
+            stage.showAndWait();
+        } catch (IOException e) {
+            Alert alert = createErrorAlert("About window error", "Unable to open the shortcut window.");
+            alert.showAndWait();
+        }
+    }
+
+    public void showInfoWindow() {
+        try {
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("About Clifford's Music Editor");
+            stage.setScene(createMarkdownScene(AppFileUtils.readAboutMd(), 700, 700, 430));
+            stage.showAndWait();
+        } catch (IOException e) {
+            Alert alert = createErrorAlert("About window error", "Unable to open the info window.");
+            alert.showAndWait();
+        }
+    }
+
+    private Scene createMarkdownScene(String markdown, int maxWidth, double width, double height) {
+        MarkdownView markdownView = new MarkdownView(markdown) {
+            @Override
+            protected List<String> getDefaultStylesheets() {
+                return List.of(Objects.requireNonNull(MainApplication.class.getResource("styles/markdown.css")).toExternalForm());
+            }
+        };
+        markdownView.setMaxWidth(maxWidth);
+        markdownView.setPadding(new Insets(20, 20, 20, 20));
+
+        ScrollPane scrollPane = new ScrollPane(markdownView);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        return new Scene(scrollPane, width, height);
+    }
+
+    private Alert createErrorAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+        return alert;
     }
 }

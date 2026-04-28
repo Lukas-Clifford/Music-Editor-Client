@@ -176,9 +176,28 @@ public class AppFileUtils {
 
     public static String readManualMd() throws IOException {
         try (InputStream inputStream = AppFileUtils.class.getResourceAsStream(
-                "/app/musiceditorclient/Manual.md")) {
+                "/app/musiceditorclient/markdown/Manual.md")) {
             if (inputStream == null) {
                 throw new IOException("manual.md not found in resources");
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    public static String readShortcutsMd() throws IOException {
+        try (InputStream inputStream = AppFileUtils.class.getResourceAsStream(
+                "/app/musiceditorclient/markdown/shortcuts.md")) {
+            if (inputStream == null) {
+                throw new IOException("shorcuts.md not found in resources");
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+    public static String readAboutMd() throws IOException {
+        try (InputStream inputStream = AppFileUtils.class.getResourceAsStream(
+                "/app/musiceditorclient/markdown/about.md")) {
+            if (inputStream == null) {
+                throw new IOException("about.md not found in resources");
             }
             return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
