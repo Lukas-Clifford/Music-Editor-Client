@@ -41,17 +41,17 @@ jobs:
           mkdir -p dist/deb/opt/$APP_NAME
           mkdir -p dist/deb/usr/bin
 
-          # Copia el JAR generado por Maven
-          cp target/*.jar dist/deb/opt/$APP_NAME/
+          JAR_FILE=$(ls target/*.jar | head -n 1)
+          cp "$JAR_FILE" dist/deb/opt/$APP_NAME/
 
-          # Script de arranque
+          JAR_NAME=$(basename "$JAR_FILE")
+
           cat > dist/deb/usr/bin/$APP_NAME <<EOF
           #!/bin/bash
-          java -jar /opt/$APP_NAME/$(ls target/*.jar | head -n 1 | xargs basename) "\$@"
+          java -jar /opt/$APP_NAME/$JAR_NAME "\$@"
           EOF
           chmod +x dist/deb/usr/bin/$APP_NAME
 
-          # Control file
           cat > dist/deb/DEBIAN/control <<EOF
           Package: $APP_NAME
           Version: $VERSION
@@ -116,3 +116,32 @@ jobs:
         with:
           name: music-editor-client-msi
           path: dist/*.msi
+
+  publish-release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: [build-deb, build-msi]
+
+    steps:
+      - name: Download DEB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: music-editor-client-deb
+          path: release-assets
+
+      - name: Download MSI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: music-editor-client-msi
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: |
+            release-assets/music-editor-client.deb
+            release-assets/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
