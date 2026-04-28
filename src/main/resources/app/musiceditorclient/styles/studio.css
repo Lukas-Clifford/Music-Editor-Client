@@ -97,23 +97,25 @@
     -fx-border-color: #7A675A;
     -fx-border-width: 1;
     -fx-padding: 2;
+    -fx-text-fill: #FFFFFF;
+}
+
+.context-menu .label {
+    -fx-text-fill: #FFFFFF;
 }
 
 .menu-item {
     -fx-background-color: transparent;
     -fx-padding: 4 12;
+    -fx-text-fill: #FFFFFF;
+}
+
+.menu-item .label {
+    -fx-text-fill: #FFFFFF;
 }
 
 .menu .menu-item {
-    -fx-text-fill: #F6EEDB;
-}
-
-.menu-item:hover {
-    -fx-background-color: #C8A96A;
-}
-
-.menu-item:hover .label {
-    -fx-text-fill: #1E1714;
+    -fx-text-fill: #FFFFFF;
 }
 
 .separator-menu-item .line {
