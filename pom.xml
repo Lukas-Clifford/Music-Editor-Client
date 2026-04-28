@@ -126,7 +126,7 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>app.musiceditorclient/app.musiceditorclient.MainApplication</mainClass>                                </transformer>
+                                    <mainClass>app.musiceditorclient.Launcher</mainClass>                                </transformer>
                             </transformers>
                         </configuration>
                     </execution>

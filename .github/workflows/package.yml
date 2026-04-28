@@ -30,10 +30,7 @@ jobs:
       - name: Build project
         run: mvn -B clean package
 
-      - name: Create app image
-        run: mvn -B javafx:jlink
-
-      - name: Package DEB
+      - name: Prepare DEB structure
         run: |
           APP_NAME="music-editor-client"
           VERSION="${GITHUB_REF_NAME#v}"
@@ -44,9 +41,17 @@ jobs:
           mkdir -p dist/deb/opt/$APP_NAME
           mkdir -p dist/deb/usr/bin
 
-          # Copia la imagen generada por javafx:jlink
-          cp -r target/app/* dist/deb/opt/$APP_NAME/
+          # Copia el JAR generado por Maven
+          cp target/*.jar dist/deb/opt/$APP_NAME/
 
+          # Script de arranque
+          cat > dist/deb/usr/bin/$APP_NAME <<EOF
+          #!/bin/bash
+          java -jar /opt/$APP_NAME/$(ls target/*.jar | head -n 1 | xargs basename) "\$@"
+          EOF
+          chmod +x dist/deb/usr/bin/$APP_NAME
+
+          # Control file
           cat > dist/deb/DEBIAN/control <<EOF
           Package: $APP_NAME
           Version: $VERSION
@@ -56,12 +61,6 @@ jobs:
           Maintainer: Lukas Clifford
           Description: Music Editor Client written in JavaFX
           EOF
-
-          cat > dist/deb/usr/bin/$APP_NAME <<'EOF'
-          #!/bin/bash
-          /opt/music-editor-client/bin/app "$@"
-          EOF
-          chmod +x dist/deb/usr/bin/$APP_NAME
 
           dpkg-deb --build dist/deb dist/music-editor-client.deb
 
@@ -90,11 +89,7 @@ jobs:
         shell: pwsh
         run: mvn -B clean package
 
-      - name: Create app image
-        shell: pwsh
-        run: mvn -B javafx:jlink
-
-      - name: Package MSI
+      - name: Prepare MSI
         shell: pwsh
         run: |
           $VERSION = $env:GITHUB_REF_NAME
@@ -103,16 +98,18 @@ jobs:
 
           New-Item -ItemType Directory -Force dist | Out-Null
 
+          $jar = Get-ChildItem target -Filter *.jar | Select-Object -First 1
+          if (-not $jar) { throw "No JAR file found in target/" }
+
           jpackage `
             --type msi `
             --name "Music Editor Client" `
             --app-version $VERSION `
-            --input target/app `
+            --input target `
+            --main-jar $jar.Name `
             --main-class app.musiceditorclient.Launcher `
-            --main-jar Music-Editor-Client-1.0.0.jar `
             --dest dist `
-            --win-console `
-            --icon icon.png
+            --win-console
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
