@@ -1,6 +1,7 @@
 package app.musiceditorclient;
 
 import app.musiceditorclient.commands.*;
+import app.musiceditorclient.infrastructure.FfmpegInstaller;
 import app.musiceditorclient.models.RecursiveClipDialogResult;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
@@ -24,6 +25,8 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+        FfmpegInstaller.ensureInstalled();
+
         FXMLLoader fxmlLoader = new FXMLLoader(MainApplication.class.getResource("main-view.fxml"));
         MainController controller = new MainController(context, services, commandManager);
         fxmlLoader.setController(controller);
