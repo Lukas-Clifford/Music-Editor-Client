@@ -21,8 +21,6 @@ public class MoveSelectionCommand extends EditorCommand{
     public void execute() {
         services.playbackService().pausePlayback();
 
-        if (seconds < 0) return;
-
         clipPanes.addAll(context.selection().getSelectedClips());
 
         clipPanes.forEach(clipPane -> clipPane.setClipStartPosition(clipPane.getAudioClip().getTimelineMsPosition() + (int) (seconds * 1000)));

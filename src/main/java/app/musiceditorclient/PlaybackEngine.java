@@ -210,9 +210,32 @@ public class PlaybackEngine {
 
     private byte[] getMixedTracks() {
         byte[] mixed = new byte[floatToInt(songLength * NORMALISED_FRAME_RATE)];
+        if (tracks.isEmpty()) {
+            return mixed;
+        }
 
+        List<byte[]> trackBuffers = new ArrayList<>(tracks.size());
         for (Track track : tracks) {
-            mixPCM16Stereo(mixed, getTrackInPCM(track), mixed);
+            trackBuffers.add(getTrackInPCM(track));
+        }
+
+        int limit = mixed.length - (mixed.length % 4);
+        int trackCount = Math.max(1, trackBuffers.size());
+
+        for (int i = 0; i < limit; i += 4) {
+            int sumL = 0;
+            int sumR = 0;
+
+            for (byte[] trackBuffer : trackBuffers) {
+                sumL += pcm16ToIntLE(trackBuffer, i);
+                sumR += pcm16ToIntLE(trackBuffer, i + 2);
+            }
+
+            int mixL = clampPCM16(sumL / trackCount);
+            int mixR = clampPCM16(sumR / trackCount);
+
+            intToPCM16LE(mixL, mixed, i);
+            intToPCM16LE(mixR, mixed, i + 2);
         }
 
         return mixed;
@@ -333,5 +356,9 @@ public class PlaybackEngine {
 
     private int safeEvenByteCount(int bytes) {
         return bytes - (bytes % 2);
+    }
+
+    private static int clampPCM16(int value) {
+        return Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, value));
     }
 }
